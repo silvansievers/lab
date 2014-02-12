@@ -16,14 +16,14 @@ from downward.reports.absolute import AbsoluteReport
 
 NODE = platform.node()
 REMOTE = NODE.startswith('gkigrid') or NODE.endswith('cluster') or NODE in ['habakuk', 'turtur']
-SCP_LOGIN = 'seipp@maia'
+SCP_LOGIN = 'maia'
 ATTRIBUTES = ['coverage', 'cost', 'quality', 'total_time']
 
-REMOTE_EXPS = os.path.expanduser('/infai/seipp/experiments/')
-LOCAL_EXPS = os.path.expanduser('/home/jendrik/lab/experiments/')
+REMOTE_EXPS = '/infai/sieverss/experiments/executed'
+LOCAL_EXPS = '/home/silvan/experiments/executed'
 
-REMOTE_REPO = os.path.expanduser('/infai/seipp/projects/downward')
-LOCAL_REPO = os.path.expanduser('/home/jendrik/projects/Downward/downward')
+REMOTE_REPO = '/infai/sieverss/repos/ipc14-clone-rev-9ce2506dc4de'
+LOCAL_REPO = '/home/silvan/work/fd-dev'
 
 REMOTE_PYTHON = 'python2.7'
 LOCAL_PYTHON = 'python2.7'
@@ -32,12 +32,12 @@ if REMOTE:
     EXPS = REMOTE_EXPS
     REPO = REMOTE_REPO
     PYTHON = REMOTE_PYTHON
-    CACHE_DIR = os.path.expanduser('~/lab/')
+    CACHE_DIR = os.path.expanduser('~/experiments/cache_dir')
 else:
     EXPS = LOCAL_EXPS
     REPO = LOCAL_REPO
     PYTHON = LOCAL_PYTHON
-    CACHE_DIR = os.path.expanduser('~/lab/')
+    CACHE_DIR = os.path.expanduser('~/experiments/cache_dir')
 
 
 class StandardDownwardExperiment(DownwardExperiment):
