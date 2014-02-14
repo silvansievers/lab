@@ -5,7 +5,7 @@ import os
 import standard_exp
 from downward.checkouts import Translator, Preprocessor, Planner
 
-EXPPATH = os.path.join(standard_exp.EXPS, 'preprocess-all')
+EXPPATH = os.path.join(standard_exp.EXPS, 'preprocess-all-extra-domains')
 SUITE = [
     'appn-adl', 'appn-strips', 'briefcaseworld',
     'fsc-blocks', 'fsc-grid-a1', 'fsc-grid-a2', 'fsc-grid-r', 'fsc-hall', 'fsc-visualmarker',
