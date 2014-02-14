@@ -3,7 +3,7 @@
 import os
 
 import standard_exp
-
+from downward.checkouts import Translator, Preprocessor, Planner
 
 EXPPATH = os.path.join(standard_exp.EXPS, 'preprocess-all')
 SUITE = [
@@ -13,8 +13,16 @@ SUITE = [
     't0-adder', 't0-coins', 't0-comm', 't0-grid-dispose', 't0-grid-push',
     't0-grid-trash', 't0-sortnet', 't0-sortnet-alt', 't0-uts'
 ]
+if standard_exp.REMOTE:
+    REPO = os.path.expanduser('~/repos/cedalion')
+else:
+    REPO = os.path.expanduser('~/work/cedalion')
+REV = 'cedalion'
+COMBOS = [(Translator(REPO, rev=REV), Preprocessor(REPO, rev=REV),
+    Planner(REPO, rev=REV))]
 
-exp = standard_exp.StandardDownwardExperiment(path=EXPPATH)
+exp = standard_exp.StandardDownwardExperiment(path=EXPPATH, repo=REPO,
+    combinations=COMBOS)
 exp.add_suite(SUITE)
 exp.add_config('unused', ['unused'])
 del exp.steps[3:]
