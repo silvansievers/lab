@@ -19,6 +19,7 @@ import datetime
 import logging
 import math
 import os
+import pkgutil
 import random
 import sys
 
@@ -67,8 +68,7 @@ class LocalEnvironment(Environment):
         replacements = {'DIRS': ',\n'.join(dirs),
                         'PROCESSES': str(self.processes)}
 
-        script = open(os.path.join(tools.DATA_DIR,
-                                   'local-job-template.py')).read()
+        script = pkgutil.get_data('lab', 'data/local-job-template.py')
         for orig, new in replacements.items():
             script = script.replace('"""' + orig + '"""', new)
 
@@ -91,20 +91,25 @@ class OracleGridEngineEnvironment(Environment):
     DEFAULT_HOST_RESTRICTION = ""    # can be overridden in derived classes
 
     def __init__(self, queue=None, priority=None, host_restriction=None,
-                 email=None, randomize_task_order=False):
+                 email=None, randomize_task_order=True):
         """
         *queue* must be a valid queue name on the grid.
 
-        *priority* must be in the range [-1023, ..., 0] where 0 is the highest
+        *priority* must be in the range [-1023, 0] where 0 is the highest
         priority. If you're a superuser the value can be in the range
-        [-1023, ..., 1024].
+        [-1023, 1024].
 
         If *email* is provided and ``--all`` is used, a message will be sent
         when the experiment finishes.
 
-        If *randomize_task_order* is set to True, tasks for runs are started
-        in a random order. This is useful to avoid systematic noise due to
-        e.g. one of the configs being run on a machine with heavy load.
+        If *randomize_task_order* is True (this is the default since
+        version 1.5), tasks for runs are started in a random order.
+        This is useful to avoid systematic noise due to e.g. one of
+        the configs being run on a machine with heavy load. Note
+        that due to the randomization, run directories may be
+        pristine while the experiment is running even though the
+        grid engine marks the runs as finished.
+
         """
         Environment.__init__(self)
         if queue is None:
@@ -151,16 +156,14 @@ class OracleGridEngineEnvironment(Environment):
         job_params = self._get_common_job_params()
         job_params.update(name=self._escape_job_name(self.exp.name),
                           num_tasks=num_tasks)
-        template_file = os.path.join(tools.DATA_DIR, self.TEMPLATE_FILE)
-        header = open(template_file).read() % job_params
+        header = pkgutil.get_data('lab', 'data/' + self.TEMPLATE_FILE) % job_params
 
         body_params = dict(num_tasks=num_tasks, run_ids='')
         if self.randomize_task_order:
             run_ids = [str(i + 1) for i in xrange(num_tasks)]
             random.shuffle(run_ids)
             body_params['run_ids'] = ' '.join(run_ids)
-        body_template_file = os.path.join(tools.DATA_DIR, 'grid-job-body-template')
-        body = open(body_template_file).read() % body_params
+        body = pkgutil.get_data('lab', 'data/grid-job-body-template') % body_params
 
         filename = self.exp._get_abs_path(self.main_script_file)
         with open(filename, 'w') as file:
@@ -211,8 +214,7 @@ class OracleGridEngineEnvironment(Environment):
         job_params.update(name=self._get_job_name(step), num_tasks=1)
         if step.is_last_step and self.email:
             job_params['notification'] = '#$ -M %s\n#$ -m e' % self.email
-        template_file = os.path.join(tools.DATA_DIR, self.TEMPLATE_FILE)
-        return open(template_file).read() % job_params
+        return pkgutil.get_data('lab', 'data/' + self.TEMPLATE_FILE) % job_params
 
     def _get_job(self, step):
         # Abort if one step fails.
@@ -250,7 +252,8 @@ cd %(cwd)s
         tools.overwrite_dir(job_dir)
         # Copy the lab and downward packages to the helper dir to make them
         # available for the steps.
-        for folder in ['data', 'downward', 'examples', 'lab']:
+        # TODO: Check if we really need to copy this.
+        for folder in ['downward', 'examples', 'lab']:
             tools.copy(os.path.join(tools.BASE_DIR, folder),
                        os.path.join(job_dir, folder))
         # Build the job files before submitting the other jobs.

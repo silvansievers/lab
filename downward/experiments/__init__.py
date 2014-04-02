@@ -21,10 +21,10 @@ A module for cloning different revisions of the three
 components of Fast Downward (translate, preprocess, search) and performing
 experiments with them.
 """
-from collections import namedtuple, defaultdict
-import os
+from collections import defaultdict
 import logging
 import multiprocessing
+import os
 import subprocess
 
 from lab.experiment import Run, Experiment
@@ -35,7 +35,8 @@ from downward.checkouts import Checkout, Translator, Preprocessor, Planner
 from downward import suites
 
 
-DOWNWARD_SCRIPTS_DIR = os.path.join(tools.BASE_DIR, 'downward', 'scripts')
+# TODO: Use pkgutil.get_data() for this.
+DOWNWARD_SCRIPTS_DIR = os.path.abspath(os.path.join(__file__, '..', '..', 'scripts'))
 
 
 # Limits can be overwritten in DownwardExperiment constructor.
@@ -51,12 +52,22 @@ LIMITS = {
 
 # Make the same check as in src/translate/translate.py.
 VERSION_STMT = '''\
-import platform
 import sys
-sys.stdout.write('Translator Python version: %s\\n' % platform.python_version())
-if sys.version_info[0] == 2 and sys.version_info[1] != 7:
-    sys.exit(1)
+
+def python_version_supported():
+    major, minor = sys.version_info[:2]
+    return (major == 2 and minor >= 7) or (major, minor) >= (3, 2)
+
+if not python_version_supported():
+    sys.exit("Error: Translator only supports Python >= 2.7 and Python >= 3.2.")
 '''
+
+
+def _get_rev_nick(translator, preprocessor, planner):
+    nicks = [part.nick for part in (translator, preprocessor, planner)]
+    if len(set(nicks)) == 1:
+        nicks = [nicks[0]]
+    return '-'.join(nicks)
 
 
 class DownwardRun(Run):
@@ -72,6 +83,7 @@ class DownwardRun(Run):
     def _set_properties(self):
         for part in self.parts:
             self.set_property(part.part + '_rev', part.rev)
+            self.set_property(part.part + '_nick', part.nick)
             self.set_property(part.part + '_summary', part.summary)
 
         self.set_property('domain', self.problem.domain)
@@ -81,16 +93,19 @@ class DownwardRun(Run):
 
     def _save_limits(self):
         for name, limit in self.experiment.limits.items():
-            # TODO: Respect timeout parameter.
             self.set_property('limit_' + name, limit)
 
-    def _save_ext_config(self):
-        self.set_property('config', self._get_ext_config())
+    def _save_ext_config(self, ext_config):
+        self.set_property('config', ext_config)
 
-    def _save_id(self):
-        run_id = self._get_id()
+    def _save_id(self, run_id):
         self.set_property('id', run_id)
         self.set_property('id_string', ':'.join(run_id))
+
+    def add_parsers(self, parsers):
+        for parser_name, parser_path in parsers:
+            self.require_resource(parser_name.upper())
+            self.add_command('run-' + parser_name, [parser_name.upper()])
 
 
 class PreprocessRun(DownwardRun):
@@ -124,41 +139,25 @@ class PreprocessRun(DownwardRun):
             self.add_command('compress-output-sas', ['bzip2', 'output.sas'])
 
         self.set_property('stage', 'preprocess')
-        self._save_ext_config()
-        self._save_id()
-
-    def _get_ext_config(self):
-        # Use nicks for run['config'] which appears in report table headers.
-        return '-'.join(part.nick for part in self.parts)
-
-    def _get_id(self):
+        self._save_ext_config('-'.join(part.nick for part in self.parts))
         # Use global revisions for ids to allow for correct cashing.
-        return ['-'.join(part.rev for part in self.parts),
-                self.problem.domain,
-                self.problem.problem]
+        self._save_id([
+            '-'.join(part.rev for part in self.parts),
+            self.problem.domain,
+            self.problem.problem])
 
 
 class SearchRun(DownwardRun):
-    def __init__(self, exp, translator, preprocessor, planner, problem, setting):
-        DownwardRun.__init__(self, exp, [translator, preprocessor, planner], problem)
+    def __init__(self, exp, algo, problem):
+        parts = [algo.translator, algo.preprocessor, algo.planner]
+        DownwardRun.__init__(self, exp, parts, problem)
 
-        config_nick = setting.nick
-        config = setting.config
+        self.require_resource(algo.planner.shell_name)
 
-        self.require_resource(planner.shell_name)
-        if config:
-            # We have a single planner configuration
-            planner_type = 'single'
-            search_cmd = [planner.shell_name] + config
-        else:
-            # We have a portfolio, config_nick is the path to the portfolio file
-            planner_type = 'portfolio'
-            config_nick = os.path.basename(config_nick)
-            search_cmd = [planner.shell_name, '--portfolio', config_nick]
-        self.config_nick = config_nick
-
-        self.add_command('search', search_cmd, stdin='OUTPUT',
-                         time_limit=setting.timeout or exp.limits['search_time'],
+        self.add_command('search',
+                         [algo.planner.shell_name] + algo.config,
+                         stdin='OUTPUT',
+                         time_limit=algo.timeout or exp.limits['search_time'],
                          mem_limit=exp.limits['search_memory'])
 
         # Remove temporary files (we need bash for globbing).
@@ -170,36 +169,41 @@ class SearchRun(DownwardRun):
         self.add_command('validate', ['DOWNWARD_VALIDATE', 'VALIDATE', 'DOMAIN',
                                       'PROBLEM'])
 
-        self.add_command('parse-search', ['SEARCH_PARSER'])
+        planner_type = 'portfolio' if self._is_portfolio(algo.config) else 'single'
 
+        # Try to restore the config_nick by stripping combo_nick from
+        # algo.nick and save it for backwards compatibility.
+        combo_nick = _get_rev_nick(algo.translator, algo.preprocessor, algo.planner)
+        if algo.nick.startswith(combo_nick + '-'):
+            config_nick = algo.nick[len(combo_nick + '-'):]
+        else:
+            config_nick = algo.nick
         self.set_property('config_nick', config_nick)
-        self.set_property('commandline_config', config)
+        self.set_property('commandline_config', algo.config)
         self.set_property('planner_type', planner_type)
         self.set_property('stage', 'search')
 
-        self._save_ext_config()
-        self._save_id()
+        self._save_ext_config(algo.nick)
+        self._save_id([algo.nick, self.problem.domain, self.problem.problem])
 
-    def _get_ext_config(self):
-        # Use nicks for ext_config which appears in report table headers.
-        nicks = [part.nick for part in self.parts]
-        # If all three parts have the same nick just print it once in reports.
-        if len(set(nicks)) == 1:
-            nicks = [nicks[0]]
-        nicks.append(self.config_nick)
-        return '-'.join(nicks)
+        if algo.timeout is not None:
+            self.set_property('limit_search_time', algo.timeout)
 
-    def _get_id(self):
-        # Use global revisions for ids to allow for correct cashing.
-        revs = [part.rev for part in self.parts]
-        if len(revs) == 3 and len(set(revs)) == 1:
-            revs = [revs[0]]
-        return ['-'.join(revs + [self.config_nick]),
-                self.problem.domain,
-                self.problem.problem]
+    @classmethod
+    def _is_portfolio(cls, config):
+        built_in = ['seq-opt-fdss-1', 'seq-opt-fdss-2',
+                    'seq-sat-fdss-1', 'seq-sat-fdss-2']
+        return any(x in config for x in built_in + ['--portfolio'])
 
 
-Setting = namedtuple('Setting', ['nick', 'config', 'timeout'])
+class _DownwardAlgorithm(object):
+    def __init__(self, nick, config, translator, preprocessor, planner, timeout=None):
+        self.nick = nick
+        self.config = config
+        self.translator = translator
+        self.preprocessor = preprocessor
+        self.planner = planner
+        self.timeout = timeout
 
 
 class DownwardExperiment(Experiment):
@@ -207,8 +211,7 @@ class DownwardExperiment(Experiment):
 
     This is the base class for Fast Downward experiments. It can be customized
     by adding the desired configurations, benchmarks and reports.
-    See :py:class:`Experiment <lab.experiment.Experiment>` for inherited
-    methods.
+    See :py:class:`lab.experiment.Experiment` for inherited methods.
 
     .. note::
 
@@ -223,10 +226,11 @@ class DownwardExperiment(Experiment):
         """
         The experiment will be built at *path*.
 
-        *repo* must be the path to a Fast Downward repository. This repository
-        is used to search for problem files.
+        *repo* must be the path to a Fast Downward repository. Among other things
+        this repository is used to search for benchmark files.
 
         *environment* must be an :ref:`Environment <environments>` instance.
+        By default the experiment is run locally.
 
         If given, *combinations* must be a list of :ref:`Checkout <checkouts>`
         tuples of the form (Translator, Preprocessor, Planner). If combinations
@@ -234,10 +238,10 @@ class DownwardExperiment(Experiment):
 
         If *compact* is True, reference benchmarks and preprocessed files instead
         of copying them. Only use this option if the referenced files will **not**
-        be changed during the experiment. Set *compact*=False if you want a
+        be changed during the experiment. Set *compact* to False if you want a
         portable experiment.
 
-        If *limits* is given, it must be a dictionary and it will be used to
+        If *limits* is given, it must be a dictionary which will be used to
         overwrite the default limits. ::
 
             default_limits = {
@@ -264,7 +268,7 @@ class DownwardExperiment(Experiment):
                        Preprocessor(repo, rev='e2a018c865f7'),
                        Planner(repo, rev='tip', dest='myplanner-version')]
             exp = DownwardExperiment('/tmp/path', repo, environment=env,
-                                     combinations=combos, compact=False,
+                                     combinations=combos,
                                      limits={'search_time': 30,
                                              'search_memory': 1024})
 
@@ -285,9 +289,11 @@ class DownwardExperiment(Experiment):
 
         self.combinations = (combinations or
                              [(Translator(repo), Preprocessor(repo), Planner(repo))])
+
         self.compact = compact
         self.suites = defaultdict(list)
-        self.settings = []
+        self._algorithms = []
+        self._portfolios = []
 
         limits = limits or {}
         for key, value in limits.items():
@@ -301,6 +307,10 @@ class DownwardExperiment(Experiment):
 
         self.include_preprocess_results_in_search_runs = True
         self.compilation_options = ['-j%d' % self._jobs]
+
+        # TODO: Use same mechanism for preprocess parser.
+        self._search_parsers = []
+        self.add_search_parser(os.path.join(DOWNWARD_SCRIPTS_DIR, 'search_parser.py'))
 
         # Remove the default experiment steps
         self.steps = Sequence()
@@ -322,10 +332,6 @@ class DownwardExperiment(Experiment):
         for benchmark_dir, suite in self.suites.items():
             tasks.extend(suites.build_suite(benchmark_dir, suite))
         return tasks
-
-    @property
-    def _portfolios(self):
-        return [setting.nick for setting in self.settings if not setting.config]
 
     def add_suite(self, suite, benchmark_dir=None):
         """
@@ -355,15 +361,19 @@ class DownwardExperiment(Experiment):
 
     def add_config(self, nick, config, timeout=None):
         """
-        *nick* is the name the config will get in the reports.
+        Add a Fast Downward configuration to the experiment.
 
-        *config* must be a list of arguments that can be passed to the planner
-        (see http://www.fast-downward.org/SearchEngine for details).
+        *config* must be a list of Fast Downward arguments
+        (see http://www.fast-downward.org/SearchEngine for details). It will
+        be run for all (translator, preprocessor, planner) combinations
+        given in the constructor.
 
-        If *timeout* is given it will be used for this config instead of the
-        global time limit set in the constructor. ::
+        *nick* is an abbreviation for the configuration used in the reports.
 
-            exp.add_config("lmcut", ["--search", "astar(lmcut())"])
+        If *timeout* is given it will be used for this config
+        instead of the global time limit set in the constructor. ::
+
+            exp.add_config('lmcut', ['--search', 'astar(lmcut())'])
         """
         if not isinstance(nick, basestring):
             logging.critical('Config nick must be a string: %s' % nick)
@@ -371,21 +381,41 @@ class DownwardExperiment(Experiment):
             logging.critical('Config must be a list: %s' % config)
         if not nick.endswith('.py') and not config:
             logging.critical('Config cannot be empty: %s' % config)
-        self.settings.append(Setting(nick, config, timeout))
+        for translator, preprocessor, planner in self.combinations:
+            algo_nick = _get_rev_nick(translator, preprocessor, planner) + '-' + nick
+            self._algorithms.append(_DownwardAlgorithm(
+                algo_nick, config, timeout=timeout,
+                translator=translator, preprocessor=preprocessor, planner=planner))
 
-    def add_portfolio(self, portfolio, **kwargs):
+    def add_portfolio(self, portfolio, nick=None, **kwargs):
         """
         *portfolio* must be the path to a Fast Downward portfolio file.
 
-        See :py:meth:`.add_config` for valid keyword arguments. ::
+        *nick* is the name of the portfolio in reports. If it is not
+        set explicitly, the portfolio's filename will be used.
+
+        Arguments in *kwargs* are passed to :py:meth:`.add_config`. ::
 
             exp.add_portfolio('/home/john/my_portfolio.py')
+            exp.add_portfolio('/home/john/my_portfolio.py',
+                              nick='issue123-my_portfolio')
         """
         if not isinstance(portfolio, basestring):
             logging.critical('portfolio parameter must be a string: %s' % portfolio)
         if not portfolio.endswith('.py'):
             logging.critical('Path to portfolio must end on .py: %s' % portfolio)
-        self.add_config(portfolio, [], **kwargs)
+        nick = nick or os.path.basename(portfolio)
+        self._portfolios.append(portfolio)
+        self.add_config(nick, ['--portfolio', os.path.basename(portfolio)], **kwargs)
+
+    def add_search_parser(self, path_to_parser):
+        """
+        Invoke script at *path_to_parser* at the end of each search run. ::
+
+            exp.add_search_parser('path/to/parser')
+        """
+        self._search_parsers.append(('search_parser%d' % len(self._search_parsers),
+                                     path_to_parser))
 
     def set_path_to_python(self, path):
         """
@@ -405,13 +435,12 @@ class DownwardExperiment(Experiment):
         return self._path_to_python or 'python'
 
     def _check_python_version(self):
-        """Abort if the Python version is smaller than 2.7."""
+        """Abort if the Python version is not supported by the translator."""
         p = subprocess.Popen([self._get_path_to_python(), '-c', VERSION_STMT])
         p.wait()
         if p.returncode != 0:
-            logging.critical('The translator requires at least Python 2.7. '
-                             'Use exp.set_path_to_python(path) to use a local '
-                             'Python interpreter.')
+            logging.critical('Use exp.set_path_to_python(path) to select a '
+                             'supported Python interpreter.')
 
     def _adapt_path(self, stage):
         if stage == 'preprocess':
@@ -446,11 +475,9 @@ class DownwardExperiment(Experiment):
         # Save the experiment stage in the properties
         self.set_property('stage', stage)
         self.set_property('suite', self.suites)
-        self.set_property('settings', [setting.nick for setting in self.settings])
+        self.set_property('algorithms', [algo.nick for algo in self._algorithms])
         self.set_property('repo', self.repo)
         self.set_property('default_limits', self.limits)
-        self.set_property('combinations', ['-'.join(part.rev for part in combo)
-                                           for combo in self.combinations])
 
         self.runs = []
         self.new_files = []
@@ -470,9 +497,6 @@ class DownwardExperiment(Experiment):
                     'preprocess_parser.py')
             self._make_preprocess_runs()
         elif stage == 'search':
-            self.add_resource('SEARCH_PARSER',
-                        os.path.join(DOWNWARD_SCRIPTS_DIR, 'search_parser.py'),
-                        'search_parser.py')
             self._make_search_runs()
         else:
             logging.critical('There is no stage "%s"' % stage)
@@ -484,14 +508,18 @@ class DownwardExperiment(Experiment):
         logging.info('Requiring %s' % part.src_dir)
         self.add_resource('', part.src_dir, part.get_path_dest())
 
-    def _checkout_and_compile(self, stage, **kwargs):
+    def _get_unique_checkouts(self):
         translators = set()
         preprocessors = set()
         planners = set()
-        for translator, preprocessor, planner in self.combinations:
-            translators.add(translator)
-            preprocessors.add(preprocessor)
-            planners.add(planner)
+        for algo in self._algorithms:
+            translators.add(algo.translator)
+            preprocessors.add(algo.preprocessor)
+            planners.add(algo.planner)
+        return translators, preprocessors, planners
+
+    def _checkout_and_compile(self, stage, **kwargs):
+        translators, preprocessors, planners = self._get_unique_checkouts()
 
         if stage == 'preprocess':
             for part in sorted(translators | preprocessors):
@@ -546,6 +574,7 @@ class DownwardExperiment(Experiment):
             if not os.path.isfile(portfolio):
                 logging.critical('Portfolio file %s could not be found.' % portfolio)
             #  Portfolio has to be executable
+            # TODO: Change downward script instead of file flags.
             if not os.access(portfolio, os.X_OK):
                 os.chmod(portfolio, 0755)
             name = os.path.basename(portfolio)
@@ -564,8 +593,8 @@ class DownwardExperiment(Experiment):
 
     def _make_preprocess_runs(self):
         unique_preprocessing = set()
-        for translator, preprocessor, planner in self.combinations:
-            unique_preprocessing.add((translator, preprocessor))
+        for algo in self._algorithms:
+            unique_preprocessing.add((algo.translator, algo.preprocessor))
 
         for translator, preprocessor in sorted(unique_preprocessing):
             self._prepare_translator_and_preprocessor(translator, preprocessor)
@@ -574,19 +603,22 @@ class DownwardExperiment(Experiment):
                 self.add_run(PreprocessRun(self, translator, preprocessor, prob))
 
     def _make_search_runs(self):
-        if not self.settings:
+        if not self._algorithms:
             logging.critical('You must add at least one config or portfolio.')
-        for translator, preprocessor, planner in self.combinations:
+        for parser_name, parser_path in self._search_parsers:
+            self.add_resource(parser_name.upper(), parser_path)
+        _, _, planners = self._get_unique_checkouts()
+        for planner in planners:
             self._prepare_planner(planner)
-            for setting in self.settings:
-                for prob in self._problems:
-                    self._make_search_run(translator, preprocessor, planner,
-                                          setting, prob)
+        for algo in self._algorithms:
+            for prob in self._problems:
+                self._make_search_run(algo, prob)
 
-    def _make_search_run(self, translator, preprocessor, planner, setting, prob):
-        preprocess_dir = os.path.join(self.preprocessed_tasks_dir,
-                                      translator.rev + '-' + preprocessor.rev,
-                                      prob.domain, prob.problem)
+    def _make_search_run(self, algo, prob):
+        preprocess_dir = os.path.join(
+            self.preprocessed_tasks_dir,
+            algo.translator.rev + '-' + algo.preprocessor.rev,
+            prob.domain, prob.problem)
 
         def source(filename):
             return os.path.join(preprocess_dir, filename)
@@ -595,11 +627,12 @@ class DownwardExperiment(Experiment):
             dest = None if self.compact else filename
             return source(filename), dest
 
-        run = SearchRun(self, translator, preprocessor, planner, prob, setting)
+        run = SearchRun(self, algo, prob)
         self.add_run(run)
 
-        run.set_property('preprocess_dir', preprocess_dir)
+        run.add_parsers(self._search_parsers)
 
+        run.set_property('preprocess_dir', preprocess_dir)
         run.set_property('compact', self.compact)
 
         # We definitely need the output file.

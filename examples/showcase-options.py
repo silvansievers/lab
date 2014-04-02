@@ -10,7 +10,6 @@ from subprocess import call
 from lab.environments import LocalEnvironment, MaiaEnvironment
 from lab.steps import Step
 from lab.fetcher import Fetcher
-from lab import tools
 from lab.reports.filter import FilterReport
 
 from downward.experiment import DownwardExperiment
@@ -27,6 +26,7 @@ from downward.reports.timeout import TimeoutReport
 import standard_exp
 
 
+DIR = os.path.dirname(os.path.abspath(__file__))
 EXPNAME = 'showcase-options'
 if standard_exp.REMOTE:
     EXPPATH = os.path.join(standard_exp.REMOTE_EXPS, EXPNAME)
@@ -50,9 +50,10 @@ exp.add_suite('zenotravel:pfile1', benchmark_dir=os.path.join(REPO, 'benchmarks'
 exp.add_config('iter-hadd', [
     '--heuristic', 'hadd=add()',
     '--search', 'iterated([lazy_greedy([hadd]),lazy_wastar([hadd])],repeat_last=true)'])
-exp.add_config('ipdb', ["--search", "astar(ipdb())"])
+exp.add_config('ipdb', ["--search", "astar(ipdb())"], timeout=10)
 # Use original LAMA 2011 configuration
 exp.add_config('lama11', ['ipc', 'seq-sat-lama-2011', '--plan-file', 'sas_plan'])
+exp.add_config('fdss-1', ['ipc', 'seq-sat-fdss-1', '--plan-file', 'sas_plan'])
 exp.add_portfolio(os.path.join(REPO, 'src', 'search', 'downward-seq-opt-fdss-1.py'))
 
 # Before we fetch the new results, delete the old ones
@@ -99,7 +100,7 @@ exp.add_step(Step('fetcher-test1', Fetcher(), exp.path, eval_dir(1), copy_all=Tr
 exp.add_step(Step('fetcher-test2', Fetcher(), exp.path, eval_dir(2), copy_all=True, write_combined_props=True))
 exp.add_step(Step('fetcher-test3', Fetcher(), exp.path, eval_dir(3), filter_config_nick='lama11'))
 exp.add_step(Step('fetcher-test4', Fetcher(), exp.path, eval_dir(4),
-                  parsers=os.path.join(tools.BASE_DIR, 'downward', 'scripts', 'search_parser.py')))
+                  parsers=os.path.join(DIR, 'simple', 'simple-parser.py')))
 
 
 # Add report steps
@@ -179,7 +180,8 @@ suite_file = os.path.join(exp.eval_dir, '%s_solved_suite.py' % EXPNAME)
 exp.add_step(Step('report-suite', SuiteReport(filter=solved), exp.eval_dir, suite_file))
 
 exp.add_report(AbsoluteReport('problem', colored=True,
-                              attributes=['coverage', 'search_time', 'cost', 'error', 'cost_all']),
+                              attributes=['coverage', 'search_time', 'cost', 'memory',
+                                          'error', 'cost_all', 'limit_search_time']),
                name='report-abs-p', outfile=abs_problem_report_file)
 
 exp.add_step(Step('finished', call, ['echo', 'Experiment', 'finished.']))

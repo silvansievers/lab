@@ -30,8 +30,8 @@ import numbers
 import os
 
 from lab import tools
-from markup import Document
 from lab.external import txt2tags
+from lab.reports.markup import Document, ESCAPE_WORDBREAK
 
 
 @tools.remove_none_values
@@ -437,9 +437,9 @@ class Table(collections.defaultdict):
         >>> t.add_cell('prob1', 'cfg2', 20)
         >>> t.add_row('prob2', {'cfg1': 15, 'cfg2': 25})
         >>> print t
-        || expansions |  cfg1 |  cfg2 |
-         | prob1      |    10 |    20 |
-         | prob2      |    15 |    25 |
+        || expansions | cfg1 | cfg2 |
+         | prob1 |  10 |  20 |
+         | prob2 |  15 |  25 |
         >>> t.row_names
         ['prob1', 'prob2']
         >>> t.col_names
@@ -450,16 +450,16 @@ class Table(collections.defaultdict):
         True
         >>> t.add_summary_function('SUM', sum)
         >>> print t
-        || expansions |  cfg1 |  cfg2 |
-         | prob1      |    10 |    20 |
-         | prob2      |    15 |    25 |
-         | **SUM**    |    25 |    45 |
+        || expansions | cfg1 | cfg2 |
+         | prob1 |  10 |  20 |
+         | prob2 |  15 |  25 |
+         | **SUM** |  25 |  45 |
         >>> t.set_column_order(['cfg2', 'cfg1'])
         >>> print t
-        || expansions |  cfg2 |  cfg1 |
-         | prob1      |    20 |    10 |
-         | prob2      |    25 |    15 |
-         | **SUM**    |    45 |    25 |
+        || expansions | cfg2 | cfg1 |
+         | prob1 |  20 |  10 |
+         | prob2 |  25 |  15 |
+         | **SUM** |  45 |  25 |
         """
         collections.defaultdict.__init__(self, dict)
 
@@ -636,7 +636,7 @@ class Table(collections.defaultdict):
         """Format all entries in **row** (in place)."""
         if row_name == self.header_row:
             for col_name, value in row.items():
-                row[col_name] = value.replace('_', '-')
+                row[col_name] = value.replace('_', '_' + ESCAPE_WORDBREAK)
             return
 
         # Get the slice of the row that should be formated (i.e. the data columns).
@@ -663,7 +663,7 @@ class Table(collections.defaultdict):
                                     rounded_value == max_value and not min_wins):
                     bold = True
             row[col_name] = self._format_cell(row_name, col_name, value,
-                                             color=color, bold=bold)
+                                              color=color, bold=bold)
 
     def _format_cell(self, row_name, col_name, value, color=None, bold=False):
         """
@@ -681,6 +681,8 @@ class Table(collections.defaultdict):
         if formatter:
             return formatter.format_value(value)
 
+        justify_right = isinstance(value, (float, int))
+
         def format_value(value):
             if isinstance(value, float):
                 return '%.2f' % value
@@ -696,6 +698,8 @@ class Table(collections.defaultdict):
             value_text = '{%s|color:%s}' % (value_text, color)
         if bold:
             value_text = '**%s**' % value_text
+        if justify_right:
+            value_text = ' ' + value_text
         return value_text
 
     def _get_markup(self, cells):
@@ -704,11 +708,6 @@ class Table(collections.defaultdict):
         **_get_printable_column_order** and **_get_printable_row_order**)
         as correctly formatted markup.
         """
-        # Remember the maximal length of each column
-        self.col_size = {}
-        for col_name in self._get_printable_column_order():
-            self.col_size[col_name] = max((len(cells[row_name].get(col_name, ''))
-                                      for row_name in self._get_printable_row_order()))
         parts = []
         for row_name in self._get_printable_row_order():
             if row_name == self.header_row:
@@ -727,15 +726,8 @@ class Table(collections.defaultdict):
         """Return the txt2tags table markup for one row."""
         formatted_cells = []
         for col_name in self._get_printable_column_order():
-            cell = self._get_cell_markup(row_name, col_name, row.get(col_name, ''))
-            formatted_cells.append(cell)
+            formatted_cells.append(row.get(col_name, ''))
         return template % ' | '.join(formatted_cells)
-
-    def _get_cell_markup(self, row_name, col_name, value):
-        """Let all columns have minimal but equal width."""
-        if col_name == self.header_column:
-            return str(value).ljust(self.col_size[col_name])
-        return ' ' + str(value).rjust(self.col_size[col_name])
 
     def __str__(self):
         """Return the txt2tags markup for this table."""
@@ -780,7 +772,7 @@ class DynamicDataModule(object):
 
     def modify_printable_row_order(self, table, row_order):
         """
-        Called after retrieving a row order in the table. Subclassed can
+        Called after retrieving a row order in the table. Subclasses can
         modify the order or add new rows. Specifically all rows that were
         added by the **collect** method should be appended or
         inserted.

@@ -105,11 +105,11 @@ class CompareRevisionsReport(CompareConfigsReport):
             config_nicks = []
             for config in self.configs:
                 for rev in self._revisions:
-                    if config.startswith('%s-' % rev):
-                        if any(config.startswith('%s-' % r)
+                    if config.startswith(rev + '-'):
+                        if any(config.startswith(r + '-')
                                for r in self._revisions if r != rev):
                             continue
-                        config_nick = config[len(rev) + 1:]
+                        config_nick = config[len(rev + '-'):]
                         if config_nick not in config_nicks:
                             config_nicks.append(config_nick)
             self._compared_configs = []
@@ -205,7 +205,8 @@ class DiffColumnsModule(reports.DynamicDataModule):
                     color = 'green'
                 else:
                     color = 'red'
-                formatted_value = '{%s|color:%s}' % (value, color)
+                # Add space in front of value to right-justify it.
+                formatted_value = ' {%s|color:%s}' % (value, color)
                 formatted_cells[row_name][diff_col_name] = formatted_value
 
     def modify_printable_column_order(self, table, column_order):
