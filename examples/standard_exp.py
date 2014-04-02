@@ -22,8 +22,8 @@ ATTRIBUTES = ['coverage', 'cost', 'quality', 'total_time']
 REMOTE_EXPS = '/infai/sieverss/experiments/executed'
 LOCAL_EXPS = '/home/silvan/experiments/executed'
 
-REMOTE_REPO = '/infai/sieverss/repos/ipc14-clone-rev-9ce2506dc4de'
-LOCAL_REPO = '/home/silvan/work/fd-dev'
+REMOTE_REPO = '/infai/sieverss/repos/cedalion'
+LOCAL_REPO = '/home/silvan/work/cedalion'
 
 REMOTE_PYTHON = 'python2.7'
 LOCAL_PYTHON = 'python2.7'
