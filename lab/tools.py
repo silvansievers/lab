@@ -45,16 +45,9 @@ except ImportError:
 from external import argparse
 
 
-LOG_LEVEL = None
-
-# Directories and files
-
-# TODO: Remove SCRIPTS_DIR once we have removed BASE_DIR.
-SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-# TODO: Remove BASE_DIR variable since only the lab dir might be present.
-BASE_DIR = os.path.dirname(SCRIPTS_DIR)
 # TODO(v2.0): Use freedesktop specification.
 DEFAULT_USER_DIR = os.path.join(os.path.expanduser('~'), 'lab')
+LOG_LEVEL = None
 
 
 class ErrorAbortHandler(logging.StreamHandler):
@@ -220,14 +213,7 @@ def import_python_file(filename, dirs=None):
 
 def _log_command(cmd, kwargs):
     assert isinstance(cmd, list)
-    # Do not show complete env variables, only show PYTHONPATH
-    kwargs_clean = kwargs.copy()
-    env = kwargs_clean.get('env')
-    if env:
-        pythonpath = env.get('PYTHONPATH')
-        if pythonpath:
-            kwargs_clean['env'] = {'PYTHONPATH': pythonpath, '...': '...'}
-    logging.info('Running command: %s %s' % (' '.join(cmd), kwargs_clean))
+    logging.info('Running command: %s %s' % (' '.join(cmd), kwargs))
 
 
 def run_command(cmd, **kwargs):
