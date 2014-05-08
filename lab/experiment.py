@@ -57,6 +57,7 @@ ARGPARSER.add_argument(
 
 
 class _Buildable(object):
+    """Abstract base class for Experiment and Run."""
     def __init__(self):
         self.resources = []
         self.new_files = []
@@ -118,7 +119,7 @@ class _Buildable(object):
             dest = os.path.abspath(source)
         self._check_alias(name)
         resource = (name, source, dest, required, symlink)
-        if not resource in self.resources:
+        if resource not in self.resources:
             self.resources.append(resource)
 
     def add_new_file(self, name, dest, content):
@@ -135,7 +136,7 @@ class _Buildable(object):
         """
         self._check_alias(name)
         new_file = (name, dest, content)
-        if not new_file in self.new_files:
+        if new_file not in self.new_files:
             self.new_files.append(new_file)
 
     @property

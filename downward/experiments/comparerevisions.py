@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#!/usr/bin/env python
-
 import logging
 
 from downward.experiment import DownwardExperiment
@@ -46,10 +44,10 @@ class CompareRevisionsExperiment(DownwardExperiment):
     Both revisions are tested with all the most important configurations.
     Reports that allow a before-after comparison are automatically added.
 
-    .. note::
+    .. deprecated:: 1.4
 
-        This class has been deprecated in version 1.4 because using the
-        DownwardExperiment class directly is more versatile.
+        This class has been deprecated because using
+        DownwardExperiment directly is more versatile.
 
     """
     def __init__(self, path, repo, opt_or_sat, rev, base_rev=None,
