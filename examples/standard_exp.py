@@ -15,7 +15,7 @@ from downward.reports.absolute import AbsoluteReport
 
 NODE = platform.node()
 REMOTE = 'cluster' in NODE or NODE.startswith('gkigrid') or NODE in ['habakuk', 'turtur']
-SCP_LOGIN = 'seipp@maia'
+SCP_LOGIN = 'maia'
 ATTRIBUTES = ['coverage', 'cost', 'quality', 'total_time']
 
 REMOTE_EXPS = '/infai/sieverss/experiments/executed'
