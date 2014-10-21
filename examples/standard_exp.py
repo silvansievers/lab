@@ -22,7 +22,7 @@ REMOTE_EXPS = '/infai/sieverss/experiments/executed'
 LOCAL_EXPS = '/home/silvan/experiments/executed'
 
 REMOTE_REPO = '/infai/sieverss/repos/fd-master-clone-rev-08f33fca24e6'
-LOCAL_REPO = '/home/silvan/work/fd-master'
+LOCAL_REPO = '/home/silvan/work/downward/master'
 
 REMOTE_PYTHON = 'python2.7'
 LOCAL_PYTHON = 'python2.7'
