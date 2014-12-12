@@ -345,9 +345,9 @@ class Report(object):
                       'domain-wise report.')
 
         doc.add_text(markup)
-        if len(markup) < 100000:
-            print 'REPORT MARKUP:\n'
-            print doc
+        #if len(markup) < 100000:
+            #print 'REPORT MARKUP:\n'
+            #print doc
         return doc.render(self.output_format, {'toc': self.toc})
 
     def write(self):
