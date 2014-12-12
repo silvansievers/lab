@@ -27,7 +27,6 @@ from collections import defaultdict
 import math
 import re
 
-# The lab directory is added automatically in the Experiment constructor
 from lab.parser import Parser
 
 
@@ -53,9 +52,6 @@ EXIT_PYTHON_SIGXCPU = 256 - 24
 
 
 def solved(run):
-    """Return true if a plan was found or if the task was proven unsolvable."""
-    # TODO: Later we want to use the following line for this.
-    # return run.get('search_returncode') in [EXIT_PLAN_FOUND, EXIT_UNSOLVABLE]
     return run['coverage'] or run['unsolvable']
 
 
@@ -74,7 +70,7 @@ ITERATIVE_PATTERNS = PORTFOLIO_PATTERNS + [
     _get_states_pattern('evaluations', 'Evaluated'),
     _get_states_pattern('expansions', 'Expanded'),
     _get_states_pattern('generated', 'Generated'),
-    # We exclude heuristic values like "1147184/1703241." that stem
+    # We exclude heuristic values like "11/17." that stem
     # from multi-heuristic search. We also do not look for
     # "Initial state h value: " because this is only written
     # for successful search runs.
@@ -100,8 +96,8 @@ CUMULATIVE_PATTERNS = [
     _get_states_pattern('reopened_until_last_jump', 'Reopened until last jump:'),
     ('search_time', re.compile(r'^Search time: (.+)s$'), float),
     ('total_time', re.compile(r'^Total time: (.+)s$'), float),
-    ('memory', re.compile(r'Peak memory: (.+) KB'), int),
-    # For iterated searches we discard any h values. Here we will not find
+    ('raw_memory', re.compile(r'Peak memory: (.+) KB'), int),
+    # For iterated searches we discard all h values. Here we will not find
     # anything before the "cumulative" line and stop the search. For single
     # searches we will find the h value if it isn't a multi-heuristic search.
     ('initial_h_value',
@@ -211,11 +207,7 @@ def set_search_time(content, props):
 
 
 def unsolvable(content, props):
-    # Iterative searches like lama might report the problem as unsolvable even
-    # after they found a solution.
-    logged_unsolvable = ('unsolvable' in content or
-            'Completely explored state space -- no solution!' in content)
-    props['unsolvable'] = int(not props['coverage'] and logged_unsolvable)
+    props['unsolvable'] = int(props['search_returncode'] == EXIT_UNSOLVABLE)
 
 
 def coverage(content, props):
@@ -238,11 +230,18 @@ def get_initial_h_value(content, props):
 
 
 def check_memory(content, props):
-    """Remove memory value if the run was not successful."""
-    # TODO: Generalize check for all attributes that only make sense for
-    #       solved tasks.
-    if not solved(props):
-        props['memory'] = None
+    """Add memory value if the run was successful."""
+    raw_memory = props.get('raw_memory')
+
+    if raw_memory is None or raw_memory < 0:
+        props['error'] = 'unexplained-could-not-determine-peak-memory'
+        return
+
+    if solved(props):
+        props['memory'] = raw_memory
+        props['memory_capped'] = raw_memory
+    elif props['search_returncode'] == EXIT_OUT_OF_MEMORY:
+        props['memory_capped'] = props['limit_search_memory'] * 1024
 
 
 def scores(content, props):
