@@ -185,7 +185,7 @@ class DiffColumnsModule(reports.DynamicDataModule):
                         list2 = string2.split(',')
                         list2 = [float(x) for x in list2]
                         diff = [a - b for a, b in zip(list1, list2)]
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError, IndexError):
                         diff = None
                 if diff is not None:
                     if type(diff) is not list:
@@ -208,7 +208,7 @@ class DiffColumnsModule(reports.DynamicDataModule):
         for col_names, diff_col_header, diff_col_name in self.compared_configs:
             for row_name in table.row_names:
                 formatted_value = formatted_cells[row_name].get(diff_col_name)
-                if type(formatted_value) is str and formatted_value.startswith("''"):
+                if type(formatted_value) is str and ('"' in formatted_value or "'" in formatted_value):
                     value = formatted_value
                     color = 'grey'
                 else:
