@@ -232,12 +232,15 @@ class DiffColumnsModule(reports.DynamicDataModule):
         Reorder configs in the order defined by compared_configs. Hide all other columns.
         """
         new_column_order = [table.header_column]
+        counter = 0
         for col_names, diff_col_header, diff_col_name in self.compared_configs:
-            if len(new_column_order) >= 4:
+            if len(new_column_order) >= 5:
                 new_column_order.append('DiffDummy')
             for col_name in col_names:
                 new_column_order.append(col_name)
             new_column_order.append(diff_col_name)
+            new_column_order.append('Extra Diff %d' % counter)
+            counter += 1
         return new_column_order
 
     def modify_printable_row_order(self, table, row_order):
