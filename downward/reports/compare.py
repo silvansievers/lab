@@ -165,6 +165,7 @@ class DiffColumnsModule(reports.DynamicDataModule):
         columns have a value. Also add an empty header for a dummy column after every diff
         column.
         """
+        # Modified to support lists of int/float values and display their difference
         for col_names, diff_col_header, diff_col_name in self.compared_configs:
             non_none_values = []
             cells[table.header_row][diff_col_name] = diff_col_header
@@ -174,8 +175,21 @@ class DiffColumnsModule(reports.DynamicDataModule):
                     diff = float(values[1]) - float(values[0])
                 except (ValueError, TypeError):
                     diff = None
+                    try:
+                        string1 = values[1][0].encode('ascii','ignore')
+                        string1 = string1.replace(' ', '')
+                        list1 = string1.split(',')
+                        list1 = [float(x) for x in list1]
+                        string2 = values[0][0].encode('ascii','ignore')
+                        string2 = string2.replace(' ', '')
+                        list2 = string2.split(',')
+                        list2 = [float(x) for x in list2]
+                        diff = [a - b for a, b in zip(list1, list2)]
+                    except (ValueError, TypeError, IndexError):
+                        diff = None
                 if diff is not None:
-                    non_none_values.append(diff)
+                    if type(diff) is not list:
+                        non_none_values.append(diff)
                     cells[row_name][diff_col_name] = diff
             for func in self.summary_functions:
                 func_name = reports.function_name(func)
@@ -194,17 +208,21 @@ class DiffColumnsModule(reports.DynamicDataModule):
         for col_names, diff_col_header, diff_col_name in self.compared_configs:
             for row_name in table.row_names:
                 formatted_value = formatted_cells[row_name].get(diff_col_name)
-                try:
-                    value = float(formatted_value)
-                except (ValueError, TypeError):
-                    value = '-'
-                if value == 0 or value == '-':
+                if type(formatted_value) is str and ('"' in formatted_value or "'" in formatted_value):
+                    value = formatted_value
                     color = 'grey'
-                elif ((value < 0 and table.get_min_wins(row_name)) or
-                      (value > 0 and not table.get_min_wins(row_name))):
-                    color = 'green'
                 else:
-                    color = 'red'
+                    try:
+                        value = float(formatted_value)
+                    except (ValueError, TypeError):
+                        value = '-'
+                    if value == 0 or value == '-':
+                        color = 'grey'
+                    elif ((value < 0 and table.get_min_wins(row_name)) or
+                          (value > 0 and not table.get_min_wins(row_name))):
+                        color = 'green'
+                    else:
+                        color = 'red'
                 # Add space in front of value to right-justify it.
                 formatted_value = ' {%s|color:%s}' % (value, color)
                 formatted_cells[row_name][diff_col_name] = formatted_value
@@ -214,12 +232,15 @@ class DiffColumnsModule(reports.DynamicDataModule):
         Reorder configs in the order defined by compared_configs. Hide all other columns.
         """
         new_column_order = [table.header_column]
+        counter = 0
         for col_names, diff_col_header, diff_col_name in self.compared_configs:
-            if len(new_column_order) >= 4:
+            if len(new_column_order) >= 5:
                 new_column_order.append('DiffDummy')
             for col_name in col_names:
                 new_column_order.append(col_name)
             new_column_order.append(diff_col_name)
+            new_column_order.append('Extra Diff %d' % counter)
+            counter += 1
         return new_column_order
 
     def modify_printable_row_order(self, table, row_order):
