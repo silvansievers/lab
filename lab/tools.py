@@ -46,7 +46,7 @@ from external import argparse
 
 
 # TODO(v2.0): Use freedesktop specification.
-DEFAULT_USER_DIR = os.path.join(os.path.expanduser('~'), 'lab')
+DEFAULT_USER_DIR = os.path.join(os.path.expanduser('~'), 'experiments/cache_dir')
 LOG_LEVEL = None
 
 
