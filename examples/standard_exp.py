@@ -23,8 +23,8 @@ REMOTE = 'cluster' in NODE or NODE.startswith('gkigrid') or NODE in ['habakuk', 
 SCP_LOGIN = 'maia'
 ATTRIBUTES = ['coverage', 'cost', 'quality', 'total_time']
 
-REMOTE_EXPS = '/infai/sieverss/experiments/executed'
-LOCAL_EXPS = '/home/silvan/experiments/executed'
+REMOTE_EXPS = '/infai/sieverss/experiments/'
+LOCAL_EXPS = '/home/silvan/experiments/'
 
 REMOTE_REPO = '/infai/sieverss/repos/fd-master-clone-rev-08f33fca24e6'
 LOCAL_REPO = '/home/silvan/work/downward/master'
@@ -36,12 +36,12 @@ if REMOTE:
     EXPS = REMOTE_EXPS
     REPO = REMOTE_REPO
     PYTHON = REMOTE_PYTHON
-    CACHE_DIR = os.path.expanduser('~/experiments/cache_dir')
+    CACHE_DIR = os.path.expanduser('~/lab/')
 else:
     EXPS = LOCAL_EXPS
     REPO = LOCAL_REPO
     PYTHON = LOCAL_PYTHON
-    CACHE_DIR = os.path.expanduser('~/experiments/cache_dir')
+    CACHE_DIR = os.path.expanduser('~/lab/')
 
 
 class StandardDownwardExperiment(DownwardExperiment):
