@@ -111,7 +111,7 @@ class DownwardRun(Run):
 
 
 class PreprocessRun(DownwardRun):
-    def __init__(self, exp, translator, preprocessor, problem):
+    def __init__(self, exp, translator, preprocessor, problem, strips):
         DownwardRun.__init__(self, exp, [translator, preprocessor], problem)
 
         self.require_resource(preprocessor.shell_name)
@@ -134,6 +134,8 @@ class PreprocessRun(DownwardRun):
                 args.extend(['--build', code_dir])
             args.append('--translate')
         args.extend(['DOMAIN', 'PROBLEM'])
+        if strips:
+            args.extend(['--translate-options', '--invariant-generation-max-candidates', '0'])
         self.add_command('translate', args,
                          time_limit=exp.limits['translate_time'],
                          mem_limit=exp.limits['translate_memory'])
@@ -267,7 +269,7 @@ class DownwardExperiment(Experiment):
         since the results are cached.
     """
     def __init__(self, path, repo, environment=None, combinations=None,
-                 compact=True, limits=None, cache_dir=None):
+                 compact=True, limits=None, cache_dir=None, strips=False):
         """
         The experiment will be built at *path*.
 
@@ -376,6 +378,7 @@ class DownwardExperiment(Experiment):
         self.add_step(Step('build-search-exp', self.build, stage='search'))
         self.add_step(Step('run-search-exp', self.run, stage='search'))
         self.add_fetcher(src=self.search_exp_path, name='fetch-search-results')
+        self.strips = strips
 
     @property
     def _problems(self):
@@ -645,7 +648,7 @@ class DownwardExperiment(Experiment):
             self._prepare_translator_and_preprocessor(translator, preprocessor)
 
             for prob in self._problems:
-                self.add_run(PreprocessRun(self, translator, preprocessor, prob))
+                self.add_run(PreprocessRun(self, translator, preprocessor, prob, self.strips))
 
     def _make_search_runs(self):
         for parser_name, parser_path in self._search_parsers:
