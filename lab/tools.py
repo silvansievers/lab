@@ -454,7 +454,8 @@ def get_colors(cells, min_wins):
     diff = float(max_value - min_value)
 
     for col, val in cells.items():
-        if val is not None:
+        # Silvan: for extra diffs
+        if val is not None and type(val) is not tuple:
             val = round(val, 2)
             if diff == 0:
                 assert val - min_value == 0, (val, min_value)
