@@ -165,7 +165,7 @@ class DiffColumnsModule(reports.DynamicDataModule):
         columns have a value. Also add an empty header for a dummy column after every diff
         column.
         """
-        # Modified to support lists of int/float values and display their difference
+        # Silvan: Modified to support lists of int/float values and display their difference
         for col_names, diff_col_header, diff_col_name in self.compared_configs:
             non_none_values = []
             cells[table.header_row][diff_col_name] = diff_col_header
@@ -194,6 +194,8 @@ class DiffColumnsModule(reports.DynamicDataModule):
             for func in self.summary_functions:
                 func_name = reports.function_name(func)
                 cells[func_name][table.header_column] = func_name.capitalize()
+                # Silvan: TODO: could try to support func( (x,y) ) for the
+                # extra diff column tuples.
                 cells[func_name][diff_col_name] = func(non_none_values)
         return cells
 
@@ -208,6 +210,7 @@ class DiffColumnsModule(reports.DynamicDataModule):
         for col_names, diff_col_header, diff_col_name in self.compared_configs:
             for row_name in table.row_names:
                 formatted_value = formatted_cells[row_name].get(diff_col_name)
+                # Silvan: Modified to support lists
                 if type(formatted_value) is str and ('"' in formatted_value or "'" in formatted_value):
                     value = formatted_value
                     color = 'grey'
@@ -234,6 +237,7 @@ class DiffColumnsModule(reports.DynamicDataModule):
         new_column_order = [table.header_column]
         counter = 0
         for col_names, diff_col_header, diff_col_name in self.compared_configs:
+            # Silvan: Hacked to assume that there is always an extra diff column
             if len(new_column_order) >= 5:
                 new_column_order.append('DiffDummy')
             for col_name in col_names:
