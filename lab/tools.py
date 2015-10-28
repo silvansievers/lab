@@ -28,6 +28,14 @@ import subprocess
 import sys
 import traceback
 
+try:
+    # Python 2.7, 3.1 and above.
+    from collections import OrderedDict
+    OrderedDict  # Silence pyflakes
+except ImportError:
+    from lab.external.ordereddict import OrderedDict
+    OrderedDict  # Silence pyflakes
+
 # Use simplejson where it's available, because it is compatible (just separately
 # maintained), puts no blanks at line endings and loads json much faster:
 # json_dump: 44.41s, simplejson_dump: 45.90s
@@ -48,6 +56,17 @@ from external import argparse
 # TODO(v2.0): Use freedesktop specification.
 DEFAULT_USER_DIR = os.path.join(os.path.expanduser('~'), 'experiments/cache_dir')
 LOG_LEVEL = None
+
+
+def get_script_path():
+    """Get absolute path to main script."""
+    import __main__
+    return os.path.abspath(__main__.__file__)
+
+
+def get_script_dir():
+    """Get absolute path to directory of main script."""
+    return os.path.dirname(get_script_path())
 
 
 class ErrorAbortHandler(logging.StreamHandler):
@@ -159,11 +178,11 @@ def overwrite_dir(path, overwrite=False):
     os.makedirs(path)
 
 
-def remove(filename):
-    try:
-        os.remove(filename)
-    except OSError:
-        pass
+def remove_path(path):
+    if os.path.isfile(path):
+        os.remove(path)
+    else:
+        shutil.rmtree(path)
 
 
 def touch(filename):
@@ -353,7 +372,7 @@ def fast_updatetree(src, dst, symlinks=False, ignore=None):
         # Without this shutil.copy2 cannot override broken symbolic links and
         # it will override the file that the link points to if the link is valid.
         if os.path.islink(dstname):
-            remove(dstname)
+            os.remove(dstname)
         try:
             if symlinks and os.path.islink(srcname):
                 linkto = os.readlink(srcname)

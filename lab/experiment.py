@@ -23,15 +23,10 @@ import sys
 import logging
 
 from lab import tools
+from lab.tools import OrderedDict
 from lab.fetcher import Fetcher
 from lab.steps import Step, Sequence
 from lab.environments import LocalEnvironment
-
-try:
-    # Python 2.7, 3.1 and above.
-    from collections import OrderedDict
-except ImportError:
-    from lab.external.ordereddict import OrderedDict
 
 
 DEFAULT_ABORT_ON_FAILURE = False
