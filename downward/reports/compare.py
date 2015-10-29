@@ -58,6 +58,7 @@ class CompareConfigsReport(AbsoluteReport):
         if compared_configs:
             configs = set()
             for t in compared_configs:
+                assert type(t) is tuple
                 for config in t[0:2]:
                     configs.add(config)
             kwargs['filter_config'] = configs
