@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import argparse
 import colorsys
 import email.mime.text
 import functools
@@ -28,14 +29,6 @@ import subprocess
 import sys
 import traceback
 
-try:
-    # Python 2.7, 3.1 and above.
-    from collections import OrderedDict
-    OrderedDict  # Silence pyflakes
-except ImportError:
-    from lab.external.ordereddict import OrderedDict
-    OrderedDict  # Silence pyflakes
-
 # Use simplejson where it's available, because it is compatible (just separately
 # maintained), puts no blanks at line endings and loads json much faster:
 # json_dump: 44.41s, simplejson_dump: 45.90s
@@ -48,9 +41,6 @@ try:
     import simplejson as json
 except ImportError:
     import json
-
-# Never use argparse module from stdlib. Its implementation has changed.
-from external import argparse
 
 
 # TODO(v2.0): Use freedesktop specification.
@@ -541,38 +531,31 @@ class RawAndDefaultsHelpFormatter(argparse.HelpFormatter):
         return help
 
 
-class ArgParser(argparse.ArgumentParser):
-    def __init__(self, add_log_option=True, *args, **kwargs):
-        argparse.ArgumentParser.__init__(
-            self, *args, formatter_class=RawAndDefaultsHelpFormatter, **kwargs)
-        if add_log_option:
-            try:
-                self.add_argument('-l', '--log-level', dest='log_level',
-                                  choices=['DEBUG', 'INFO', 'WARNING'],
-                                  default='INFO',
-                                  help='Logging verbosity')
-            except argparse.ArgumentError:
-                # The option may have already been added by a parent class.
-                pass
-
-    def parse_known_args(self, *args, **kwargs):
-        args, remaining = argparse.ArgumentParser.parse_known_args(self, *args,
-                                                                   **kwargs)
-
-        global LOG_LEVEL
-        # Set log level only once (May have already been deleted from sys.argv)
-        if getattr(args, 'log_level', None) and not LOG_LEVEL:
-            LOG_LEVEL = getattr(logging, args.log_level.upper())
-            setup_logging(LOG_LEVEL)
-
-        return (args, remaining)
-
-    def directory(self, string):
-        if not os.path.isdir(string):
-            msg = '%r is not an evaluation directory' % string
-            raise argparse.ArgumentTypeError(msg)
-        return string
+def get_parser(add_log_option=True, **kwargs):
+    kwargs.setdefault('formatter_class', RawAndDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(**kwargs)
+    if add_log_option:
+        parser.add_argument(
+            '-l', '--log-level',
+            dest='log_level',
+            choices=['DEBUG', 'INFO', 'WARNING'],
+            default='INFO',
+            help='Logging verbosity')
+    return parser
 
 
-# Parse the log level and set it.
-ArgParser(add_help=False).parse_known_args()
+def parse_and_set_log_level():
+    # Set log level only once.
+    global LOG_LEVEL
+    if LOG_LEVEL:
+        return
+
+    parser = get_parser(add_help=False)
+    args, remaining = parser.parse_known_args()
+
+    if getattr(args, 'log_level', None):
+        LOG_LEVEL = getattr(logging, args.log_level.upper())
+        setup_logging(LOG_LEVEL)
+
+
+parse_and_set_log_level()

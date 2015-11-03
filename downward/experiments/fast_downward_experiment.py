@@ -20,7 +20,7 @@
 A module for running Fast Downward experiments.
 """
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import logging
 import multiprocessing
 import os.path
@@ -177,7 +177,7 @@ class FastDownwardExperiment(Experiment):
         self._suites = defaultdict(list)
 
         # Use OrderedDict to ensure that nicks are unique and ordered.
-        self._algorithms = tools.OrderedDict()
+        self._algorithms = OrderedDict()
 
     def _get_tasks(self):
         tasks = []
@@ -215,6 +215,7 @@ class FastDownwardExperiment(Experiment):
                 'Benchmarks directory {} not found.'.format(benchmarks_dir))
         self._suites[benchmarks_dir].extend(suite)
 
+    # TODO: Always add -j option and update docs.
     def add_algorithm(self, nick, repo, rev, component_options,
                       build_options=None, driver_options=None):
         """
