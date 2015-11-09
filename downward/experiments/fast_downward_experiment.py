@@ -64,8 +64,12 @@ class FastDownwardRun(Run):
 
         self._set_properties()
 
-        self.add_resource('DOMAIN', self.task.domain_file(), 'domain.pddl')
-        self.add_resource('PROBLEM', self.task.problem_file(), 'problem.pddl')
+        # Linking to instead of copying the PDDL files makes building
+        # the experiment twice as fast.
+        self.add_resource(
+            'DOMAIN', self.task.domain_file(), 'domain.pddl', symlink=True)
+        self.add_resource(
+            'PROBLEM', self.task.problem_file(), 'problem.pddl', symlink=True)
 
         # TODO: After removing DownwardExperiment, use name "fast-downward".
         self.add_command(
@@ -73,13 +77,11 @@ class FastDownwardRun(Run):
             ['FAST_DOWNWARD'] + algo.driver_options +
             ['DOMAIN', 'PROBLEM'] + algo.component_options)
 
-        # TODO: Use exp.add_command() once it is available.
         self.add_command('parse-preprocess', ['PREPROCESS_PARSER'])
         self.add_command('parse-search', ['SEARCH_PARSER'])
 
         self.add_command(
-            'compress-output-files',
-            ['xz', 'domain.pddl', 'problem.pddl', 'output.sas', 'output'])
+            'compress-output-files', ['xz', 'output.sas', 'output'])
 
     def _set_properties(self):
         self.set_property('algorithm_nick', self.algo.nick)
@@ -150,7 +152,7 @@ class FastDownwardExperiment(Experiment):
     def __init__(self, path=None, environment=None, cache_dir=None):
         """
         The experiment will be built at *path*. It defaults to
-        ``<scriptdir>/data/<scriptname>/``. E.g. if your script is at
+        ``<scriptdir>/data/<scriptname>/``. E.g., if your script is at
         ``experiments/myexp.py``, *path* will be
         ``experiments/data/myexp/``.
 
