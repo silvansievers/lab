@@ -26,7 +26,8 @@ class Domain(object):
         self.domain = domain
         directory = os.path.join(benchmarks_dir, domain)
         problem_files = tools.natural_sort([
-            p for p in os.listdir(directory) if 'domain' not in p])
+            p for p in os.listdir(directory)
+            if 'domain' not in p and not p.endswith('.py')])
         self.problems = [
             Problem(benchmarks_dir, domain, problem)
             for problem in problem_files]
@@ -375,8 +376,6 @@ def suite_ipc14():
 
 def suite_unsolvable():
     # TODO: Add other unsolvable problems (Miconic-FullADL).
-    # TODO: Add 'fsc-grid-r:prize5x5_R.pddl' and 't0-uts:uts_r-02.pddl'
-    #       if the extra-domains branch is merged.
     return sorted(
         ['mystery:prob%02d.pddl' % index
          for index in [4, 5, 7, 8, 12, 16, 18, 21, 22, 23, 24]] +

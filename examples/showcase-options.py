@@ -28,21 +28,21 @@ from downward.reports.timeout import TimeoutReport
 DIR = os.path.dirname(os.path.abspath(__file__))
 REMOTE = 'cluster' in platform.node()
 if REMOTE:
-    REPO = '/infai/seipp/projects/downward'
+    REPO = os.path.expanduser('~/projects/downward')
+    BENCHMARKS_DIR = os.path.expanduser('~/projects/benchmarks')
     ENV = MaiaEnvironment()
 else:
-    REPO = '/home/jendrik/projects/Downward/downward'
+    REPO = os.path.expanduser('~/projects/Downward/downward')
+    BENCHMARKS_DIR = os.path.expanduser('~/projects/Downward/benchmarks')
     ENV = LocalEnvironment(processes=4)
 CACHE_DIR = os.path.expanduser('~/lab/')
-BENCHMARKS_DIR = os.path.join(REPO, 'benchmarks')
 REV = 'tip'
 ATTRIBUTES = ['coverage']
 EXPNAME = 'showcase-options'
 
 exp = FastDownwardExperiment(environment=ENV, cache_dir=CACHE_DIR)
 
-exp.add_suite(BENCHMARKS_DIR, ['gripper:prob01.pddl', 'mystery:prob07.pddl'])
-exp.add_suite(BENCHMARKS_DIR, 'zenotravel:pfile1')
+exp.add_suite(BENCHMARKS_DIR, ['gripper:prob01.pddl', 'miconic:s1-0.pddl'])
 exp.add_algorithm('iter-hadd', REPO, REV, [
     '--heuristic', 'hadd=add()',
     '--search', 'iterated([lazy_greedy([hadd]),lazy_wastar([hadd])],repeat_last=true)'])

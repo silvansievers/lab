@@ -11,20 +11,21 @@ from downward.experiment import FastDownwardExperiment
 from downward.reports.absolute import AbsoluteReport
 
 
-SUITE = ['gripper:prob01.pddl', 'zenotravel:pfile1']
+SUITE = ['gripper:prob01.pddl']
 ATTRIBUTES = ['coverage', 'expansions']
 
 if 'cluster' in platform.node():
     REPO = os.path.expanduser('~/projects/downward')
+    BENCHMARKS_DIR = os.path.expanduser('~/projects/benchmarks')
     ENV = MaiaEnvironment(priority=-10)
 else:
     REPO = os.path.expanduser('~/projects/Downward/downward')
+    BENCHMARKS_DIR = os.path.expanduser('~/projects/Downward/benchmarks')
     ENV = LocalEnvironment(processes=2)
-BENCHMARKS = os.path.join(REPO, 'benchmarks')
 CACHE_DIR = os.path.expanduser('~/lab')
 
 exp = FastDownwardExperiment(environment=ENV, cache_dir=CACHE_DIR)
-exp.add_suite(BENCHMARKS, SUITE)
+exp.add_suite(BENCHMARKS_DIR, SUITE)
 exp.add_algorithm(
     'lmcut', REPO, 'tip', ['--search', 'astar(lmcut())'])
 
