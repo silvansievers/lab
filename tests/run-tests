@@ -3,14 +3,16 @@
 # Test setup:
 #
 # $ sudo apt-get install pip
-# $ sudo pip install -U pytest pep8 pyflakes sphinx
+# $ sudo pip install -U pytest pep8 pyflakes sphinx vulture
 
 set -euo pipefail
 
-REPO='/home/jendrik/projects/Downward/downward'
+BENCHMARKS="$HOME/projects/Downward/benchmarks"
+REPO="$HOME/projects/Downward/downward"
 
 function cleanup {
     rm -rf examples/data
+    rm -rf examples/ff/data
     rm -rf examples/pi/data
     rm -rf examples/planner/data
     rm -rf examples/simple/data
@@ -23,13 +25,7 @@ cd ..
 # Make lab available on the PYTHONPATH.
 LAB=`realpath .`
 echo "Checking lab at $LAB"
-if [ -z "$PYTHONPATH" ]; then
-    # PYTHONPATH is empty.
-    export PYTHONPATH=${LAB}
-elif [[ "$PYTHONPATH" != *"$LAB"* ]]; then
-    # LAB is NOT on the PYTHONPATH.
-    export PYTHONPATH=${LAB}:${PYTHONPATH}
-fi
+export PYTHONPATH=${LAB}
 echo "PYTHONPATH: $PYTHONPATH"
 
 cleanup
@@ -41,12 +37,15 @@ cd lab
 python -m doctest reports/__init__.py experiment.py tools.py
 cd ..
 cd downward
-python -m doctest downward/suites.py
+if [ -d "$BENCHMARKS" ]; then
+    python -m doctest experiment.py
+fi
 cd ..
 
 # Check imports and unused/missing variables.
 pyflakes lab/calls lab/reports lab/*.py  # Don't check external dir.
 pyflakes downward examples
+pyflakes tests
 
 ./tests/find-dead-code
 
@@ -60,6 +59,13 @@ echo "Docs: file://$(pwd)/_build/html/index.html"
 cd ..
 
 cd examples
+
+# FF experiment needs benchmarks.
+if [ -d "$REPO" ]; then
+    cd ff
+    ./ff.py --all
+    cd ..
+fi
 
 cd simple
 ./simple-exp.py --all
