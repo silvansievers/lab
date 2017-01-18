@@ -372,7 +372,8 @@ def get_min_max(items):
     None), return (None, None).
 
     """
-    numbers = [val for val in items if val is not None]
+    # Silvan: for extra diffs
+    numbers = [val for val in items if val is not None and type(val) is not tuple]
     if numbers:
         return min(numbers), max(numbers)
     else:
