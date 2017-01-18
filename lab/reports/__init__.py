@@ -653,6 +653,7 @@ class Table(collections.defaultdict):
         # modules) that should not be formated.
         row_slice = dict((col_name, row.get(col_name))
                          for col_name in self.col_names)
+        ### TODO Silvan: exclude diff columns here for ComparisonReport
 
         min_value, max_value = tools.get_min_max(row_slice.values())
 
