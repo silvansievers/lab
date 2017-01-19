@@ -481,7 +481,7 @@ class Table(collections.defaultdict):
         self.cell_formatters = collections.defaultdict(dict)
         self.column_order = None
         self.summary_row_order = []
-        self.column_color = {}
+        self.column_color_type = {}
 
     def add_cell(self, row, col, value):
         """Set Table[row][col] = value."""
@@ -556,7 +556,7 @@ class Table(collections.defaultdict):
         self._cols = None
 
     def set_column_color(self, col_name, color):
-        self.column_color[col_name] = color
+        self.column_color_type[col_name] = color
 
     def get_min_wins(self, row_name=None):
         """
@@ -580,10 +580,17 @@ class Table(collections.defaultdict):
             for col_name, column in self.get_columns().items():
                 # Silvan: for extra diffs
                 values = [val for val in column if val is not None and type(val) is not tuple]
+                # Always use sum to aggregate diff/better/worse tables
+                if self.column_color_type.get(col_name, None):
+                    actual_func = func # store previous function
+                    func = sum #
                 if values:
                     summary_row[col_name] = func(values)
                 else:
                     summary_row[col_name] = None
+                if self.column_color_type.get(col_name, None):
+                    func = actual_func # reset to previous function
+
             summary_row[self.header_column] = row_name
             summary_rows[row_name] = summary_row
             formatter = CellFormatter(bold=True, count=self.num_values)
@@ -656,7 +663,7 @@ class Table(collections.defaultdict):
         # Note that there might be other columns (e.g. added by dynamic data
         # modules) that should not be formated.
         row_slice = dict((col_name, row.get(col_name))
-                         for col_name in self.col_names if self.column_color.get(col_name, None) is None)
+                         for col_name in self.col_names if self.column_color_type.get(col_name, None) is None)
 
         min_value, max_value = tools.get_min_max(row_slice.values())
 
@@ -678,9 +685,10 @@ class Table(collections.defaultdict):
                         (is_close(value, min_value) and min_wins) or
                         (is_close(value, max_value) and not min_wins)):
                     bold = True
-            elif self.column_color.get(col_name, None):
-                color = self.column_color[col_name]
-                if color == 'diff':
+            # Decide on the color of diff/better/worse columns based on value
+            elif self.column_color_type.get(col_name, None):
+                color_type = self.column_color_type[col_name]
+                if color_type == 'diff':
                     if value is None or value == 0:
                         color = 'gray'
                     elif (value < 0 and min_wins) or (value > 0 and not min_wins):
@@ -689,6 +697,18 @@ class Table(collections.defaultdict):
                         color = 'red'
                     else:
                         assert False
+                elif color_type == 'better':
+                    if value == 0:
+                        color = 'gray'
+                    else:
+                        color = 'green'
+                elif color_type == 'worse':
+                    if value == 0:
+                        color = 'gray'
+                    else:
+                        color = 'red'
+                else:
+                    assert False
             row[col_name] = self._format_cell(row_name, col_name, value,
                                               color=color, bold=bold)
 
