@@ -47,8 +47,8 @@ class ComparisonReport(AbsoluteReport):
         kwargs['filter_algorithm'] = algos
         self.algorithm_pairs = algorithm_pairs
         AbsoluteReport.__init__(self, **kwargs)
-        self.algopair_domain_attribute_better = {}
-        self.algopair_domain_attribute_worse = {}
+        self.algopair_domain_attribute_better = defaultdict(int)
+        self.algopair_domain_attribute_worse = defaultdict(int)
 
     # TODO: can we use the full name diff-%s-%s and still display a custom
     # value in the table header, e.g. only "diff"?
@@ -65,14 +65,6 @@ class ComparisonReport(AbsoluteReport):
         return self.algopair_columnname[algo_pair][2]
 
     def get_markup(self):
-        ### Silvan: modified compared to absolute report
-        for algo_pair in self.algorithm_pairs:
-            for domain in self.domains:
-                for attribute in self.attributes:
-                    self.algopair_domain_attribute_better[algo_pair, domain, attribute] = 0
-                    self.algopair_domain_attribute_worse[algo_pair, domain, attribute] = 0
-        ### end modifications
-
         sections = []
         toc_lines = []
 
