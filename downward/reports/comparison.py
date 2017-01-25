@@ -302,18 +302,36 @@ class ComparisonTable(reports.Table):
         for row_name in self.summary_row_order:
             func = self.summary_funcs[row_name]
             summary_row = {}
-            for col_name, column in self.get_columns().items():
-                values = [val for val in column if val is not None]
-                # Always use sum to aggregate diff/better/worse tables
-                if self.column_color_type.get(col_name, None):
-                    actual_func = func # store previous function
-                    func = sum #
-                if values:
-                    summary_row[col_name] = func(values)
+            second_to_previous_col_aggregated_value = -1
+            previous_col_aggregated_value = -1
+            col_counter = 0
+            for col_name in self.col_names:
+                values = []
+                for _row_name in self.row_names:
+                    value = self[_row_name].get(col_name)
+                    if value is not None:
+                        values.append(value)
+                if self.column_color_type.get(col_name, '') == 'diff':
+                    # For diff columns, compute the diff of the previously stored
+                    # aggregated values of the first and second column.
+                    assert second_to_previous_col_aggregated_value != -1
+                    assert previous_col_aggregated_value != -1
+                    summary_row[col_name] = previous_col_aggregated_value - second_to_previous_col_aggregated_value
                 else:
-                    summary_row[col_name] = None
-                if self.column_color_type.get(col_name, None):
-                    func = actual_func # reset to previous function
+                    if values:
+                        # Always use sum to aggregate better/worse tables
+                        if self.column_color_type.get(col_name, '') in ['better', 'worse']:
+                            summary_row[col_name] = sum(values)
+                        else:
+                            summary_row[col_name] = func(values)
+                    else:
+                        summary_row[col_name] = None
+                # TODO: this assumes a fixed number of 5 columns for every comparison
+                if col_counter % 5 == 0:
+                    second_to_previous_col_aggregated_value = summary_row[col_name]
+                if col_counter % 5 == 1:
+                    previous_col_aggregated_value = summary_row[col_name]
+                col_counter += 1
 
             summary_row[self.header_column] = row_name
             summary_rows[row_name] = summary_row
@@ -363,7 +381,7 @@ class ComparisonTable(reports.Table):
             elif self.column_color_type.get(col_name, None):
                 color_type = self.column_color_type[col_name]
                 if color_type == 'diff':
-                    if value is None or value == 0:
+                    if value is None or is_close(value, 0):
                         color = 'gray'
                     elif (value < 0 and min_wins) or (value > 0 and not min_wins):
                         color = 'green'
