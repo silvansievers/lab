@@ -89,7 +89,7 @@ class Fetcher(object):
         logging.info('Fetching files from {} -> {}'.format(src_dir, eval_dir))
         logging.info('Fetching from evaluation dir: {}'.format(fetch_from_eval_dir))
 
-        #_check_eval_dir(eval_dir)
+        _check_eval_dir(eval_dir)
 
         # Load properties in the eval_dir if there are any already.
         combined_props = tools.Properties(os.path.join(eval_dir, 'properties'))

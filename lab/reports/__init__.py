@@ -574,8 +574,7 @@ class Table(collections.defaultdict):
             func = self.summary_funcs[row_name]
             summary_row = {}
             for col_name, column in self.get_columns().items():
-                # Silvan: for extra diffs
-                values = [val for val in column if val is not None and type(val) is not tuple]
+                values = [val for val in column if val is not None]
                 if values:
                     summary_row[col_name] = func(values)
                 else:

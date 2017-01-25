@@ -355,8 +355,7 @@ def get_colors(cells, min_wins):
     diff = float(max_value - min_value)
 
     for col, val in cells.items():
-        # Silvan: for extra diffs
-        if val is not None and type(val) is not tuple:
+        if val is not None:
             if diff == 0:
                 fraction = 0
             else:
@@ -372,8 +371,7 @@ def get_min_max(items):
     None), return (None, None).
 
     """
-    # Silvan: for extra diffs
-    numbers = [val for val in items if val is not None and type(val) is not tuple]
+    numbers = [val for val in items if val is not None]
     if numbers:
         return min(numbers), max(numbers)
     else:
