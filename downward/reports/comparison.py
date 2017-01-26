@@ -342,9 +342,10 @@ class ComparisonTable(reports.Table):
             values = [row[col_names[i]] for i in range(5)]
             colors = ['gray' for i in range(5)]
             bolds = [False for i in range(5)]
-            if min_wins is not None and values[0] is not None and values[1] is not None:
+            diff = values[2]
+            if min_wins is not None and diff is not None:
                 # Highlight the value and the diff columns if the difference is non-zero
-                if (min_wins and values[1] < values[0]) or (not min_wins and values[1] > values[0]):
+                if (min_wins and diff < 0) or (not min_wins and diff > 0):
                     if self.colored:
                         colors[0] = 'blue'
                         colors[1] = 'blue'
@@ -353,7 +354,7 @@ class ComparisonTable(reports.Table):
                         #bolds[1] = True
                         bolds[2] = True
 
-                if (min_wins and values[0] < values[1]) or (not min_wins and values[0] > values[1]):
+                if (min_wins and diff > 0) or (not min_wins and diff < 0):
                     if self.colored:
                         colors[0] = 'blue'
                         colors[1] = 'blue'
