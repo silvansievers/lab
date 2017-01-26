@@ -379,3 +379,9 @@ class ComparisonTable(reports.Table):
                 row[col_name] = self._format_cell(
                     row_name, col_name, values[index],
                     color=colors[index], bold=bolds[index])
+
+        # Format the header_column (which we don't acces via self.algorithm_pairs)
+        row[self.header_column] = self._format_cell(
+            row_name,
+            self.header_column,
+            row_name)
