@@ -132,30 +132,57 @@ class ComparisonReport(AbsoluteReport):
         self._add_summary_functions(table, attribute)
         # The first group function is used for aggregation.
         func_name, func = self._get_group_functions(attribute)[0]
-        num_probs = 0
-        self._add_table_info(attribute, func_name, table)
-        domain_algo_values = defaultdict(list)
-        for (domain, problem), runs in self.problem_runs.items():
-                if (not attribute.absolute and
-                        any(run.get(attribute) is None for run in runs)):
-                    continue
-                num_probs += 1
-                for run in runs:
-                    value = run.get(attribute)
-                    if value is not None:
-                        domain_algo_values[(domain, run['algorithm'])].append(value)
-
-        # If the attribute is absolute (e.g. coverage) we may have
-        # added problems for which not all algorithms have a value. Therefore, we
-        # can only print the number of instances (in brackets after the domain
-        # name) if that number is the same for all algorithms. If not all algorithms
-        # have values for the same number of problems, we write the full list of
-        # different problem numbers.
         num_values_lists = defaultdict(list)
-        for domain in self.domains:
-            for algo in self.algorithms:
-                values = domain_algo_values.get((domain, algo), [])
-                num_values_lists[domain].append(str(len(values)))
+        for algo_pair in self.algorithm_pairs:
+            # For each domain, collect values of all problems. If the attribute
+            # is not absolute, only collect values of those problems solved by
+            # both algorithms of the pair.
+            domain_algo_values = defaultdict(list)
+            for (domain, problem), runs in self.problem_runs.items():
+                if (not attribute.absolute and
+                    any(run.get(attribute) is None for run in runs if run['algorithm'] in algo_pair)):
+                    continue
+                for run in runs:
+                    if run['algorithm'] in algo_pair:
+                        value = run.get(attribute)
+                        if value is not None:
+                            domain_algo_values[(domain, run['algorithm'])].append(value)
+
+            # For each domain, compute the aggregated value for the algorithm
+            # pair and based on these the difference. Also use previously
+            # computed (see _get_domain_table) values for the better/worse
+            # columns.
+            for domain in self.domains:
+                values_algo1 = domain_algo_values[(domain, algo_pair[0])]
+                values_algo2 = domain_algo_values[(domain, algo_pair[1])]
+                # For each domain and comparison of algorithms, store the number
+                # of tasks for which the aggregated value has been computed.
+                if not attribute.absolute:
+                    assert len(values_algo1) == len(values_algo2)
+                if len(values_algo1) == len(values_algo2):
+                    num_values_lists[domain].append(str(len(values_algo1)))
+                else:
+                    num_values_lists[domain].append(str((len(values_algo1), len(values_algo2))))
+                aggregated_algo1 = None
+                aggregated_algo2 = None
+                if len(values_algo1) > 0:
+                    aggregated_algo1 = func(values_algo1)
+                if len(values_algo2) > 0:
+                    aggregated_algo2 = func(values_algo2)
+                diff = None
+                if aggregated_algo1 is not None and aggregated_algo2 is not None:
+                    diff = aggregated_algo2 - aggregated_algo1
+
+                table.add_cell(domain, algo_pair[0], aggregated_algo1)
+                table.add_cell(domain, algo_pair[1], aggregated_algo2)
+                table.add_cell(domain, table._get_diff_col_name(algo_pair), diff)
+                table.add_cell(domain, table._get_better_col_name(algo_pair),
+                               self.algopair_domain_attribute_better[algo_pair, domain, attribute])
+                table.add_cell(domain, table._get_worse_col_name(algo_pair),
+                               self.algopair_domain_attribute_worse[algo_pair, domain, attribute])
+
+        # Format all header column entries to use links and display number of
+        # tasks used for each comparison.
         for domain, num_values_list in num_values_lists.items():
             if len(set(num_values_list)) == 1:
                 count = num_values_list[0]
@@ -166,29 +193,6 @@ class ComparisonReport(AbsoluteReport):
                 link = '#%s-%s' % (attribute, domain)
             formatter = reports.CellFormatter(link=link, count=count)
             table.cell_formatters[domain][table.header_column] = formatter
-
-        ### Silvan: modified compared to absolute report
-        domain_algo_aggregatedresult = {}
-        for (domain, algo), values in domain_algo_values.items():
-            aggreated_result = func(values)
-            table.add_cell(domain, algo, aggreated_result)
-            domain_algo_aggregatedresult[domain, algo] = aggreated_result
-
-        table.num_values = num_probs
-
-        for algo_pair in self.algorithm_pairs:
-            for domain in self.domains:
-                algo2_value = domain_algo_aggregatedresult.get((domain, algo_pair[1]), None)
-                algo1_value = domain_algo_aggregatedresult.get((domain, algo_pair[0]), None)
-                if algo2_value is None or algo1_value is None:
-                    continue
-                diff = algo2_value - algo1_value
-                table.add_cell(domain, table._get_diff_col_name(algo_pair), diff)
-                table.add_cell(domain, table._get_better_col_name(algo_pair),
-                               self.algopair_domain_attribute_better[algo_pair, domain, attribute])
-                table.add_cell(domain, table._get_worse_col_name(algo_pair),
-                               self.algopair_domain_attribute_worse[algo_pair, domain, attribute])
-        ### end modifications
 
         return table
 
@@ -350,9 +354,9 @@ class ComparisonTable(reports.Table):
                         colors[0] = 'blue'
                         colors[1] = 'blue'
                         colors[2] = 'green'
-                    else:
+                    #else:
                         #bolds[1] = True
-                        bolds[2] = True
+                        #bolds[2] = True
 
                 if (min_wins and diff > 0) or (not min_wins and diff < 0):
                     if self.colored:
@@ -369,11 +373,11 @@ class ComparisonTable(reports.Table):
                         colors[3] = 'green'
                     if values[4]: # worse column: color red if non-zero
                         colors[4] = 'red'
-                else:
-                    if values[3]: # better column: color green if non-zero
-                        bolds[3] = True
-                    if values[4]: # worse column: color red if non-zero
-                        bolds[4] = True
+                #else:
+                    #if values[3]: # better column: color green if non-zero
+                        #bolds[3] = True
+                    #if values[4]: # worse column: color red if non-zero
+                        #bolds[4] = True
 
             for index, col_name in enumerate(col_names):
                 row[col_name] = self._format_cell(
