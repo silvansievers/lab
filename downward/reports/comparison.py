@@ -349,16 +349,16 @@ class ComparisonTable(reports.Table):
             diff = values[2]
             if min_wins is not None and diff is not None:
                 # Highlight the value and the diff columns if the difference is non-zero
-                if (min_wins and diff < 0) or (not min_wins and diff > 0):
+                if (min_wins and diff < 0) or (not min_wins and diff > 0): # algo2 wins
                     if self.colored:
                         colors[0] = 'blue'
                         colors[1] = 'blue'
                         colors[2] = 'green'
-                    #else:
+                    else:
                         #bolds[1] = True
-                        #bolds[2] = True
+                        bolds[2] = True
 
-                if (min_wins and diff > 0) or (not min_wins and diff < 0):
+                if (min_wins and diff > 0) or (not min_wins and diff < 0): # algo1 wins
                     if self.colored:
                         colors[0] = 'blue'
                         colors[1] = 'blue'
