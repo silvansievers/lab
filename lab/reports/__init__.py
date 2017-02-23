@@ -159,10 +159,10 @@ class Report(object):
 
         If given, *filter* must be a function or a list of functions
         that are passed a dictionary of a run's attribute keys and
-        values and return True or False. Depending on the returned
-        value, the run is included or excluded from the report.
-        Alternatively, the function can return a dictionary that will
-        overwrite the old run's dictionary for the report.
+        values. Filters must return True, False or a new dictionary.
+        Depending on the returned value, the run is included or excluded
+        from the report, or replaced by the new dictionary,
+        respectively.
 
         Filters for properties can be given in shorter form without
         defining a function. To include only runs where attribute
@@ -193,6 +193,19 @@ class Report(object):
                 return run['score_search_time'] > run['score_memory']
             exp.add_report(Report(filter=better_time_than_memory_score))
 
+        Add a new attribute::
+
+            def add_expansions_per_time(run):
+                expansions = run.get('expansions')
+                time = run.get('search_time')
+                if expansions is not None and time:
+                    run['expansions_per_time'] = expansions / time
+                return run
+
+            exp.add_report(Report(
+                attributes=['expansions_per_time'],
+                filter=[add_expansions_per_time]))
+
         Rename, filter and sort algorithms::
 
             def rename_algorithms(run):
@@ -217,7 +230,8 @@ class Report(object):
 
         """
         self.attributes = tools.make_list(attributes or [])
-        assert format in txt2tags.TARGETS + ['eps', 'pdf', 'pgf', 'png', 'py']
+        if format not in txt2tags.TARGETS + ['eps', 'pdf', 'pgf', 'png', 'py']:
+            raise ValueError('invalid format: {}'.format(format))
         self.output_format = format
         self.toc = True
         self.run_filter = tools.RunFilter(filter, **kwargs)
@@ -479,6 +493,7 @@ class Table(collections.defaultdict):
         self.header_row = 'column names (never printed)'
         self.header_column = 'row names (never printed)'
         self.cell_formatters = collections.defaultdict(dict)
+        self.row_order = None
         self.column_order = None
         self.summary_row_order = []
 
@@ -507,7 +522,7 @@ class Table(collections.defaultdict):
     @property
     def row_names(self):
         """Return all data row names in sorted order."""
-        return tools.natural_sort(self.keys())
+        return self.row_order or tools.natural_sort(self.keys())
 
     @property
     def col_names(self):
@@ -549,6 +564,9 @@ class Table(collections.defaultdict):
         """
         self.summary_funcs[name] = func
         self.summary_row_order.append(name)
+
+    def set_row_order(self, order):
+        self.row_order = order
 
     def set_column_order(self, order):
         self.column_order = order
