@@ -173,8 +173,8 @@ class ComparisonReport(AbsoluteReport):
                 if aggregated_algo1 is not None and aggregated_algo2 is not None:
                     diff = aggregated_algo2 - aggregated_algo1
 
-                table.add_cell(domain, algo_pair[0], aggregated_algo1)
-                table.add_cell(domain, algo_pair[1], aggregated_algo2)
+                table.add_cell(domain, table._get_algo1_name(algo_pair), aggregated_algo1)
+                table.add_cell(domain, table._get_algo2_name(algo_pair), aggregated_algo2)
                 table.add_cell(domain, table._get_diff_col_name(algo_pair), diff)
                 table.add_cell(domain, table._get_better_col_name(algo_pair),
                                self.algopair_domain_attribute_better[algo_pair, domain, attribute])
@@ -220,8 +220,8 @@ class ComparisonReport(AbsoluteReport):
                         worse = 1
                         self.algopair_domain_attribute_worse[algo_pair, domain, attribute] += 1
 
-                table.add_cell(problem, algo1, algo1_value)
-                table.add_cell(problem, algo2, algo2_value)
+                table.add_cell(problem, table._get_algo1_name(algo_pair), algo1_value)
+                table.add_cell(problem, table._get_algo2_name(algo_pair), algo2_value)
                 table.add_cell(problem, table._get_diff_col_name(algo_pair), diff)
                 table.add_cell(problem, table._get_better_col_name(algo_pair), better)
                 table.add_cell(problem, table._get_worse_col_name(algo_pair), worse)
@@ -260,28 +260,35 @@ class ComparisonTable(reports.Table):
         for index, algo_pair in enumerate(algorithm_pairs):
             assert type(algo_pair) is tuple
             self.algopair_columnname[algo_pair] = (
+                '%s%d' % (algo_pair[0], index), '%s%d' % (algo_pair[1], index),
                 'Diff%d' % index, 'Better%d' % index, 'Worse%d' % index)
             columns.extend(self.get_col_names_for_algorithm_pair(algo_pair))
         self.set_column_order(columns)
 
     # TODO: can we use the full name diff-%s-%s and still display a custom
     # value in the table header, e.g. only "diff"?
+    def _get_algo1_name(self, algo_pair):
+        return self.algopair_columnname[algo_pair][0]
+
+    def _get_algo2_name(self, algo_pair):
+        return self.algopair_columnname[algo_pair][1]
+
     def _get_diff_col_name(self, algo_pair):
         #return 'Diff-%s-%s' % (algo_pair[0], algo_pair[1])
-        return self.algopair_columnname[algo_pair][0]
+        return self.algopair_columnname[algo_pair][2]
 
     def _get_better_col_name(self, algo_pair):
         #return '%s-better-than-%s' % (algo_pair[1], algo_pair[0])
-        return self.algopair_columnname[algo_pair][1]
+        return self.algopair_columnname[algo_pair][3]
 
     def _get_worse_col_name(self, algo_pair):
         #return '%s-worse-than-%s' % (algo_pair[1], algo_pair[0])
-        return self.algopair_columnname[algo_pair][2]
+        return self.algopair_columnname[algo_pair][4]
 
     def get_col_names_for_algorithm_pair(self, algo_pair):
         return [
-            algo_pair[0],
-            algo_pair[1],
+            self._get_algo1_name(algo_pair),
+            self._get_algo2_name(algo_pair),
             self._get_diff_col_name(algo_pair),
             self._get_better_col_name(algo_pair),
             self._get_worse_col_name(algo_pair)
