@@ -28,7 +28,7 @@ import logging
 
 from lab import reports
 from lab import tools
-from lab.reports import Attribute, Report, geometric_mean, finite_sum
+from lab.reports import Attribute, Report, geometric_mean, finite_sum, arithmetic_mean
 
 
 class QualityFilters(object):
@@ -79,10 +79,10 @@ class PlanningReport(Report):
         Attribute('generated', functions=geometric_mean),
         Attribute(
             'initial_h_value', min_wins=False, scale='linear',
-            reports.finite_sum),
+            functions=finite_sum),
         Attribute('plan_length', scale='linear'),
         Attribute('quality', absolute=True, min_wins=False),
-        Attribute('score_*', min_wins=False, digits=4),
+        Attribute('score_*', min_wins=False, digits=4, functions=arithmetic_mean),
         Attribute('search_time', functions=geometric_mean),
         Attribute('total_time', functions=geometric_mean),
         Attribute('unsolvable', absolute=True, min_wins=False),
