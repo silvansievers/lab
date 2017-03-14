@@ -43,6 +43,8 @@ def arithmetic_mean(values):
     40.0
     """
     assert None not in values
+    if len(values) == 0:
+        return 0
     return math.fsum(values) / len(values)
 
 
