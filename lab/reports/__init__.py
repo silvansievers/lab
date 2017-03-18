@@ -54,6 +54,8 @@ def geometric_mean(values):
     >>> round(geometric_mean([2, 8]), 2)
     4.0
     """
+    if len(values) == 0:
+        return 0
     assert None not in values
     exp = 1.0 / len(values)
     return tools.product([val ** exp for val in values])
