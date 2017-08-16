@@ -436,7 +436,7 @@ class SlurmEnvironment(GridEnvironment):
         return job_params
 
     def _submit_job(self, job_name, job_file, job_dir, dependency=None):
-        submit = ['sbatch']
+        submit = ['sbatch', '--cpus-per-task=1', '--mem-per-cpu=3G']
         if self.export:
             submit += ['--export', ",".join(self.export)]
         if dependency:
