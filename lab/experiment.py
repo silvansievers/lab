@@ -318,7 +318,8 @@ class Experiment(_Buildable):
             "lab-default-parser.py",
             pkgutil.get_data('lab', 'data/default-parser.py'),
             permissions=0o755)
-        self.add_command("run-lab-default-parser", ["{lab_default_parser}"])
+        self.add_command(
+            "run-lab-default-parser", [sys.executable, "{lab_default_parser}"])
 
         self.steps = []
         self.add_step('build', self.build)
@@ -610,8 +611,6 @@ class Run(_Buildable):
         env_vars.update(run_vars)
         env_vars = self._prepare_env_vars(env_vars)
 
-        run_script = pkgutil.get_data('lab', 'data/run-template.py')
-
         def make_call(name, cmd, kwargs):
             kwargs['name'] = name
 
@@ -646,9 +645,7 @@ class Run(_Buildable):
         calls_text = '\n'.join(
             make_call(name, cmd, kwargs)
             for name, (cmd, kwargs) in self.commands.items())
-
-        for old, new in [('CALLS', calls_text)]:
-            run_script = run_script.replace('"""%s"""' % old, new)
+        run_script = tools.fill_template('run.py', calls=calls_text)
 
         self.add_new_file('', 'run', run_script, permissions=0o755)
 

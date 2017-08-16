@@ -24,6 +24,7 @@ from collections import defaultdict, OrderedDict
 import logging
 import multiprocessing
 import os.path
+import sys
 
 from lab.experiment import Run, Experiment, get_default_data_dir
 
@@ -68,8 +69,8 @@ class FastDownwardRun(Run):
         self.set_property('driver_options', self.algo.driver_options)
         self.set_property('component_options', self.algo.component_options)
 
-        self.set_property('domain', self.task.domain)
-        self.set_property('problem', self.task.problem)
+        for key, value in self.task.properties.items():
+            self.set_property(key, value)
 
         self.set_property('experiment_name', self.experiment.name)
 
@@ -135,8 +136,8 @@ class FastDownwardExperiment(Experiment):
         # Add default parsing for preprocessor and search for the entire
         # experiment to allow users to delete these steps if the components
         # are not run.
-        self.add_command('parse-preprocess', ['{preprocess_parser}'])
-        self.add_command('parse-search', ['{search_parser}'])
+        self.add_command('parse-preprocess', [sys.executable, '{preprocess_parser}'])
+        self.add_command('parse-search', [sys.executable, '{search_parser}'])
 
     def _get_tasks(self):
         tasks = []
@@ -162,14 +163,12 @@ class FastDownwardExperiment(Experiment):
         optimal planning and ``satisficing`` for satisifing planning::
 
             # Create standard optimal planning suite.
-            $ ~/projects/Downward/benchmarks/suites.py optimal_strips
+            $ path/to/downward-benchmarks/suites.py optimal_strips
             ['airport', ..., 'zenotravel']
 
         You can copy the generated list into your experiment script::
 
-            >>> repo = os.path.expanduser('~/projects/Downward/downward')
-            >>> benchmarks_dir = os.path.expanduser(
-            ...     '~/projects/Downward/benchmarks')
+            >>> benchmarks_dir = REPO = os.environ["DOWNWARD_BENCHMARKS"]
             >>> exp = FastDownwardExperiment()
             >>> exp.add_suite(benchmarks_dir, ['airport', 'zenotravel'])
 
@@ -223,7 +222,7 @@ class FastDownwardExperiment(Experiment):
 
         >>> import os.path
         >>> exp = FastDownwardExperiment()
-        >>> repo = os.path.expanduser("~/projects/Downward/downward")
+        >>> repo = os.environ["DOWNWARD_REPO"]
 
         Test iPDB in the latest revision on the default branch:
 
@@ -249,7 +248,7 @@ class FastDownwardExperiment(Experiment):
 
         >>> exp.add_algorithm(
         ...     "ff", repo, "default",
-        ...     ["--search", "lazy_greedy(ff())"],
+        ...     ["--search", "lazy_greedy([ff()])"],
         ...     build_options=["release64"],
         ...     driver_options=["--build", "release64"])
 
@@ -286,7 +285,14 @@ class FastDownwardExperiment(Experiment):
         if not self._algorithms:
             logging.critical('You must add at least one algorithm.')
 
-        self.set_property('suite', self._suites)
+        # We convert the problems in suites to strings to avoid errors when converting
+        # properties to JSON later. The clean but more complex solution would be to add
+        # a method to the JSONEncoder that recognizes and correctly serializes the class
+        # Problem.
+        serialized_suites = {
+            benchmarks_dir: [str(problem) for problem in benchmarks]
+            for benchmarks_dir, benchmarks in self._suites.items()}
+        self.set_property('suite', serialized_suites)
         self.set_property('algorithms', self._algorithms.keys())
 
         self._cache_revisions()
