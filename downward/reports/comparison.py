@@ -204,8 +204,16 @@ class ComparisonReport(AbsoluteReport):
             algo1 = algo_pair[0]
             algo2 = algo_pair[1]
             for problem in self.domains[domain]:
-                algo1_value = self.runs[domain, problem, algo1].get(attribute)
-                algo2_value = self.runs[domain, problem, algo2].get(attribute)
+                algo1_run = self.runs.get((domain, problem, algo1), None)
+                if algo1_run is None:
+                    print "{} has not been run on {}:{}".format(algo1, domain, problem)
+                    exit(1)
+                algo1_value = algo1_run.get(attribute)
+                algo2_run = self.runs.get((domain, problem, algo2), None)
+                if algo2_run is None:
+                    print "{} has not been run on {}:{}".format(algo2, domain, problem)
+                    exit(1)
+                algo2_value = algo2_run.get(attribute)
                 try:
                     diff = float(algo2_value) - float(algo1_value)
                 except (ValueError, TypeError, KeyError):
