@@ -27,6 +27,7 @@ import fnmatch
 import logging
 import math
 import numbers
+import numpy
 import os
 import sys
 
@@ -66,6 +67,12 @@ def finite_sum(values):
     None and 'infinity'.
     """
     return sum([x for x in values if x is not None and x != sys.maxint])
+
+def percentile_90(values):
+    return numpy.percentile(values, 90)
+
+def percentile_95(values):
+    return numpy.percentile(values, 95)
 
 
 def function_name(f):
