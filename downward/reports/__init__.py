@@ -86,6 +86,7 @@ class PlanningReport(Report):
         Attribute('search_time', functions=geometric_mean),
         Attribute('total_time', functions=geometric_mean),
         Attribute('unsolvable', absolute=True, min_wins=False),
+        Attribute('unsolvable_incomplete', absolute=True, min_wins=False),
         #Attribute('evaluations_until_last_jump', functions=geometric_mean),
         #Attribute('expansions_until_last_jump', functions=geometric_mean),
         #Attribute('generated_until_last_jump', functions=geometric_mean),

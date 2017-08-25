@@ -193,6 +193,9 @@ def set_search_time(content, props):
 def unsolvable(content, props):
     props['unsolvable'] = int(props['fast-downward_returncode'] == EXIT_UNSOLVABLE)
 
+def unsolvable_incomplete(content, props):
+    props['unsolvable_incomplete'] = int(props['fast-downward_returncode'] == EXIT_UNSOLVED_INCOMPLETE)
+
 
 def coverage(content, props):
     props['coverage'] = int('plan_length' in props and 'cost' in props)
@@ -326,6 +329,7 @@ class SearchParser(Parser):
         self.add_function(get_iterative_results)
         self.add_function(coverage)
         self.add_function(unsolvable)
+        self.add_function(unsolvable_incomplete)
         self.add_function(get_error)
 
 
