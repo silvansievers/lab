@@ -34,7 +34,7 @@ def main():
     print "Running Lab default parser"
     p = Parser()
     p.add_function(check_log_size)
-    p.add_function(check_stderr_output, file='run.err')
+    #p.add_function(check_stderr_output, file='run.err')
     p.add_function(check_driver_stderr_output, file='driver.err')
     p.add_function(check_driver_failures)
     p.parse()
