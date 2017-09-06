@@ -158,7 +158,7 @@ class _Buildable(object):
         self.new_files.append((dest, content, permissions))
 
     def add_command(self, name, command, time_limit=None, memory_limit=None,
-                    stdout_limit=5 * 1024, stderr_limit=1024, **kwargs):
+                    stdout_limit=100 * 1024, stderr_limit=1024, **kwargs):
         """Call an executable.
 
         If invoked on a *run*, this method adds the command to the
