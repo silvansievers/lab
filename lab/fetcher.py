@@ -115,8 +115,9 @@ class Fetcher(object):
         for props in combined_props.values():
             error = props.get('error', 'unexplained:attribute-error-missing')
             if error and error.startswith('unexplained'):
+                exp_name = props.get('experiment_name', 'dummy-exp-name')
                 logging.warning(
-                    'Unexplained error in {props[run_dir]}: {error}'.format(**locals()))
+                    'Unexplained error in {props[run_dir]}: {error} (in exp: {exp_name})'.format(**locals()))
                 unxeplained_errors += 1
 
         tools.makedirs(eval_dir)
