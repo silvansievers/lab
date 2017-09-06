@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 # -*- coding: utf-8 -*-
 #
 # downward uses the lab package to conduct experiments with the
@@ -22,7 +22,6 @@ Regular expressions and functions for parsing Fast Downward experiments.
 """
 
 from __future__ import division
-from __future__ import print_function
 
 from collections import defaultdict
 import math
@@ -98,7 +97,7 @@ def _same_length(groups):
 def _update_props_with_iterative_values(props, values, attr_groups):
     for group in attr_groups:
         if not _same_length(values[attr] for attr in group):
-            print('Error: malformed log:', values)
+            print 'Error: malformed log:', values
             props['error'] = 'unexplained-malformed-log'
 
     for name, items in values.items():
@@ -264,9 +263,7 @@ def scores(content, props):
     try:
         max_time = props['limit_search_time']
     except KeyError:
-        print(
-            "search time limit missing -> can't compute time scores",
-            file=sys.stderr)
+        print "search time limit missing -> can't compute time scores"
     else:
         props['score_total_time'] = log_score(
             props.get('total_time'), min_bound=1.0, max_bound=max_time)
@@ -276,9 +273,7 @@ def scores(content, props):
     try:
         max_memory_kb = props['limit_search_memory'] * 1024
     except KeyError:
-        print(
-            "search memory limit missing -> can't compute score_memory",
-            file=sys.stderr)
+        print "search memory limit missing -> can't compute score_memory"
     else:
         props['score_memory'] = log_score(
             props.get('memory'), min_bound=2000, max_bound=max_memory_kb)
@@ -300,7 +295,7 @@ def get_error(content, props):
     For unexplained errors please check the files run.log, run.err,
     driver.log and driver.err to find the reason for the error.
     """
-    if 'error' in props:
+    if props.get('error', None):
         return
 
     # TODO: Set coverage=1 only if EXIT_PLAN_FOUND is returned.
@@ -351,10 +346,10 @@ class SingleSearchParser(SearchParser):
             type=float, required=False)
         self.add_pattern(
             'limit_search_time', 'search time limit: (\d+)s',
-            type=int, required=True)
+            type=int, required=False)
         self.add_pattern(
             'limit_search_memory', 'search memory limit: (\d+) MB',
-            type=int, required=True)
+            type=int, required=False)
 
         self.add_function(get_cumulative_results)
         self.add_function(check_memory)
@@ -388,11 +383,11 @@ def get_planner_type():
 def main():
     planner_type = get_planner_type()
     if planner_type == 'single':
-        print('Running single search parser')
+        print 'Running single search parser'
         parser = SingleSearchParser()
     else:
         assert planner_type == 'portfolio', planner_type
-        print('Running portfolio parser')
+        print 'Running portfolio parser'
         parser = PortfolioParser()
 
     parser.parse()

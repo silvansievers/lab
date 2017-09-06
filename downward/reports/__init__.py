@@ -136,20 +136,6 @@ class PlanningReport(Report):
 
         Report.__init__(self, **kwargs)
 
-    def get_text(self):
-        markup = Report.get_text(self)
-        unxeplained_errors = 0
-        for run in self.runs.values():
-            if run.get('error', '').startswith('unexplained'):
-                logging.warning(
-                    'Unexplained error in "{run_dir}": {error}'.format(**run))
-                unxeplained_errors += 1
-        if unxeplained_errors:
-            logging.warning(
-                'There were {} runs with unexplained errors.'.format(
-                    unxeplained_errors))
-        return markup
-
     def _prepare_attribute(self, attr):
         if not isinstance(attr, Attribute):
             if attr in self.ATTRIBUTES:
@@ -224,10 +210,21 @@ class PlanningReport(Report):
             'fast-downward_wall_clock_time', 'raw_memory']
         table = reports.Table(title='Unexplained errors')
         table.set_column_order(columns)
-        for run in self.props.values():
-            if run.get('error', '').startswith('unexplained'):
+
+        unxeplained_errors = 0
+        for run in self.runs.values():
+            error = run.setdefault('error', 'unexplained:attribute-error-missing')
+            if error and error.startswith('unexplained'):
+                logging.warning(
+                    'Unexplained error in "{run_dir}": {error}'.format(**run))
+                unxeplained_errors += 1
                 for column in columns:
                     table.add_cell(run['run_dir'], column, run.get(column, '?'))
+        if unxeplained_errors:
+            logging.warning(
+                'There were {} runs with unexplained errors.'.format(
+                    unxeplained_errors))
+
         return table
 
     def _get_algorithm_order(self):
