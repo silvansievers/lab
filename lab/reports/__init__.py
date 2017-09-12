@@ -68,6 +68,12 @@ def finite_sum(values):
     """
     return sum([x for x in values if x is not None and x != sys.maxint])
 
+def percentile_50(values):
+    return numpy.percentile(values, 50)
+
+def percentile_75(values):
+    return numpy.percentile(values, 75)
+
 def percentile_90(values):
     return numpy.percentile(values, 90)
 
