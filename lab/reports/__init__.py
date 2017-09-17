@@ -66,18 +66,28 @@ def finite_sum(values):
     """Compute the sum of a list of numbers, excluding values of
     None and 'infinity'.
     """
+    if len(values) == 0:
+        return 0
     return sum([x for x in values if x is not None and x != sys.maxint])
 
 def percentile_50(values):
+    if len(values) == 0:
+        return 0
     return numpy.percentile(values, 50)
 
 def percentile_75(values):
+    if len(values) == 0:
+        return 0
     return numpy.percentile(values, 75)
 
 def percentile_90(values):
+    if len(values) == 0:
+        return 0
     return numpy.percentile(values, 90)
 
 def percentile_95(values):
+    if len(values) == 0:
+        return 0
     return numpy.percentile(values, 95)
 
 
