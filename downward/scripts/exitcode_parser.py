@@ -35,7 +35,7 @@ def unsolvable_incomplete(content, props):
     props['unsolvable_incomplete'] = int(outcome and outcome.msg == 'incomplete-search-found-no-plan')
 
 
-def get_search_error(content, props):
+def get_error(content, props):
     """
     Convert the exitcode of the planner to a human-readable message and store
     it in props['error']. Additionally, if there was an unexplained error, add
@@ -60,7 +60,7 @@ def get_search_error(content, props):
 class ExitCodeParser(Parser):
     def __init__(self):
         Parser.__init__(self)
-        self.add_function(get_search_error)
+        self.add_function(get_error)
         self.add_function(unsolvable)
         self.add_function(unsolvable_incomplete)
 
