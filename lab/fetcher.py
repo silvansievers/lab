@@ -65,7 +65,8 @@ class Fetcher(object):
 
         return tools.Properties(filename=prop_file)
 
-    def __call__(self, src_dir, eval_dir=None, filter=None, parsers=None, **kwargs):
+    def __call__(self, src_dir, eval_dir=None, merge=None, filter=None,
+                 parsers=None, **kwargs):
         """
         This method can be used to copy properties from an exp-dir or
         eval-dir into an eval-dir. If the destination eval-dir already
@@ -89,7 +90,13 @@ class Fetcher(object):
         logging.info('Fetching files from {} -> {}'.format(src_dir, eval_dir))
         logging.info('Fetching from evaluation dir: {}'.format(fetch_from_eval_dir))
 
-        _check_eval_dir(eval_dir)
+        if merge is None:
+            _check_eval_dir(eval_dir)
+        elif merge:
+            # No action needed, data will be merged.
+            pass
+        else:
+            tools.remove_path(eval_dir)
 
         # Load properties in the eval_dir if there are any already.
         combined_props = tools.Properties(os.path.join(eval_dir, 'properties'))
@@ -111,19 +118,18 @@ class Fetcher(object):
             run_filter.apply(new_props)
             combined_props.update(new_props)
 
-        #unxeplained_errors = 0
-        #for props in combined_props.values():
-            #error = props.get('error', 'unexplained:attribute-error-missing')
-            #if error and error.startswith('unexplained'):
-                #exp_name = props.get('experiment_name', 'dummy-exp-name')
-                #logging.warning(
-                    #'Unexplained error in {props[run_dir]}: {error} (in exp: {exp_name})'.format(**locals()))
-                #unxeplained_errors += 1
+        unexplained_errors = 0
+        for props in combined_props.values():
+            error_message = tools.get_unexplained_errors_message(props)
+            if error_message is not None:
+                logging.warning(error_message)
+                unexplained_errors += 1
 
         tools.makedirs(eval_dir)
         combined_props.write()
         logging.info('Wrote properties file')
 
-        #if unxeplained_errors:
-            #logging.critical(
-                #'There were {} runs with unexplained errors.'.format(unxeplained_errors))
+        if unexplained_errors:
+            logging.critical(
+                'There were {} runs with unexplained errors.'.format(
+                    unexplained_errors))

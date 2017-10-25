@@ -21,6 +21,7 @@ import logging
 
 from lab import reports
 
+from downward import outcomes
 from downward.reports import PlanningReport
 
 
@@ -78,7 +79,38 @@ class AbsoluteReport(PlanningReport):
         for attribute in self.attributes:
             logging.info('Creating table(s) for %s' % attribute)
             tables = []
-            if self.attribute_is_numeric(attribute):
+            if attribute == 'error':
+                seen_errors = set()
+                error_counter = defaultdict(int)
+
+                for run in self.runs.values():
+                    error = run.get('error', 'attribute-error-missing')
+                    seen_errors.add(error)
+                    error_counter[(run["algorithm"], run["domain"], error)] += 1
+
+                error_to_min_wins = dict(
+                    (outcome.msg, outcome.min_wins) for outcome in outcomes.OUTCOMES)
+
+                for error in sorted(seen_errors):
+                    # Txt2tags seems to only allow letters, "-" and "_" in anchors.
+                    pseudo_attribute = 'error-' + error
+                    table = self._get_empty_table(title=pseudo_attribute)
+                    min_wins = error_to_min_wins.get(error, None)
+                    table.min_wins = min_wins
+                    table.colored = min_wins is not None
+                    for domain in self.domains:
+                        if self.use_domain_links:
+                            table.cell_formatters[domain][table.header_column] = (
+                                reports.CellFormatter(
+                                    link='#error-{domain}'.format(**locals())))
+                        for algorithm in self.algorithms:
+                            count = error_counter.get((algorithm, domain, error), 0)
+                            table.add_cell(domain, algorithm, count)
+                    table.add_summary_function('Sum', sum)
+                    reports.extract_summary_rows(
+                        table, summary, link='#' + 'error-' + pseudo_attribute)
+                    tables.append((pseudo_attribute, table))
+            elif self.attribute_is_numeric(attribute):
                 domain_table = self._get_table(attribute)
                 tables.append(('', domain_table))
                 reports.extract_summary_rows(

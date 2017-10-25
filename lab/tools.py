@@ -189,6 +189,17 @@ def run_command(cmd, **kwargs):
     return subprocess.call(cmd, **kwargs)
 
 
+def add_unexplained_error(dictionary, error):
+    """
+    Add *error* to the list of unexplained errors at
+    dictionary['unexplained_errors']. Create the list if it does not
+    exist yet.
+    """
+    key = 'unexplained_errors'
+    dictionary.setdefault(key, [])
+    dictionary[key].append(error)
+
+
 class Properties(dict):
     def __init__(self, filename=None):
         self.filename = filename
@@ -207,6 +218,9 @@ class Properties(dict):
             except ValueError as e:
                 logging.critical("JSON parse error in file '%s': %s" % (filename, e))
 
+    def add_unexplained_error(self, error):
+        add_unexplained_error(self, error)
+
     def write(self):
         """Write the properties to disk."""
         assert self.filename
@@ -216,8 +230,7 @@ class Properties(dict):
 
 class RunFilter(object):
     def __init__(self, filter, **kwargs):
-        filter = filter or []
-        self.filters = make_list(filter)
+        self.filters = make_list(filter or [])
         for arg_name, arg_value in kwargs.items():
             if not arg_name.startswith('filter_'):
                 logging.critical('Invalid keyword argument name "%s"' % arg_name)
@@ -422,6 +435,21 @@ def get_terminal_size():
         return (width, height)
     except Exception:
         return (None, None)
+
+
+def get_unexplained_errors_message(run):
+    """
+    Return an error message if an unexplained error occured in the given run,
+    otherwise return None. Also, add an unexplained error to the run if
+    run['error'] is missing.
+    """
+    if 'error' not in run:
+        add_unexplained_error(run, 'attribute-error-missing')
+
+    if run.get('unexplained_errors', []):
+        return 'Unexplained errors in "{run_dir}": {unexplained_errors}'.format(**run)
+    else:
+        return None
 
 
 class RawAndDefaultsHelpFormatter(argparse.HelpFormatter):
