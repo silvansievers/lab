@@ -20,8 +20,7 @@ from collections import defaultdict
 import logging
 
 from lab import reports
-from lab import tools
-from lab.reports.markup import Document, ESCAPE_WORDBREAK
+from lab.reports.markup import ESCAPE_WORDBREAK
 
 from downward.reports.absolute import AbsoluteReport
 
