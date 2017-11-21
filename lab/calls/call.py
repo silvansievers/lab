@@ -39,7 +39,9 @@ def set_limit(kind, soft_limit, hard_limit=None):
 
 class Call(object):
     def __init__(self, args, name, time_limit=None, memory_limit=None,
-                 stdout_limit=None, stderr_limit=None, **kwargs):
+                 soft_stdout_limit=None, hard_stdout_limit=None,
+                 soft_stderr_limit=None, hard_stderr_limit=None,
+                 **kwargs):
         """Make system calls with time and memory constraints.
 
         *args* and *kwargs* are passed to `subprocess.Popen
@@ -58,11 +60,8 @@ class Call(object):
             # Enforce miminum on wall-clock limit to account for disk latencies.
             self.wall_clock_time_limit = max(30, time_limit * 1.5)
 
-        def convert_to_bytes(limit):
-            return None if limit is None else limit * 1024
-
-        stdout_limit_in_bytes = convert_to_bytes(stdout_limit)
-        stderr_limit_in_bytes = convert_to_bytes(stderr_limit)
+        def get_bytes(limit):
+            return None if limit is None else int(limit * 1024)
 
         # Allow passing filenames instead of file handles.
         self.opened_files = []
@@ -75,12 +74,13 @@ class Call(object):
 
         # Allow redirecting and limiting the output to streams.
         self.redirected_streams_and_limits = {}
-        for stream_name, limit in [
-                ('stdout', stdout_limit_in_bytes),
-                ('stderr', stderr_limit_in_bytes)]:
+        for stream_name, soft_limit, hard_limit in [
+                ('stdout', get_bytes(soft_stdout_limit), get_bytes(hard_stdout_limit)),
+                ('stderr', get_bytes(soft_stderr_limit), get_bytes(hard_stderr_limit))]:
             stream = kwargs.pop(stream_name, None)
             if stream:
-                self.redirected_streams_and_limits[stream_name] = (stream, limit)
+                self.redirected_streams_and_limits[stream_name] = (
+                    stream, (soft_limit, hard_limit))
                 kwargs[stream_name] = subprocess.PIPE
 
         def prepare_call():
@@ -118,7 +118,7 @@ class Call(object):
         """
         fd_to_infile = {}
         fd_to_outfile = {}
-        fd_to_limit = {}
+        fd_to_limits = {}
         fd_to_bytes = {}
 
         poller = select.poll()
@@ -135,19 +135,13 @@ class Call(object):
 
         select_POLLIN_POLLPRI = select.POLLIN | select.POLLPRI
 
-        if 'stdout' in self.redirected_streams_and_limits:
-            new_stdout, stdout_limit = self.redirected_streams_and_limits['stdout']
-            register_and_append(self.process.stdout, select_POLLIN_POLLPRI)
-            fd = self.process.stdout.fileno()
-            fd_to_outfile[fd] = new_stdout
-            fd_to_limit[fd] = stdout_limit
-
-        if 'stderr' in self.redirected_streams_and_limits:
-            new_stderr, stderr_limit = self.redirected_streams_and_limits['stderr']
-            register_and_append(self.process.stderr, select_POLLIN_POLLPRI)
-            fd = self.process.stderr.fileno()
-            fd_to_outfile[fd] = new_stderr
-            fd_to_limit[fd] = stderr_limit
+        for stream_name, (new_stream, limits) in (
+                self.redirected_streams_and_limits.items()):
+            old_stream = getattr(self.process, stream_name)
+            register_and_append(old_stream, select_POLLIN_POLLPRI)
+            fd = old_stream.fileno()
+            fd_to_outfile[fd] = new_stream
+            fd_to_limits[fd] = limits
 
         while fd_to_infile:
             try:
@@ -164,27 +158,50 @@ class Call(object):
                         close_unregister_and_remove(fd)
                     if fd_to_outfile[fd]:
                         outfile = fd_to_outfile[fd]
-                        limit = fd_to_limit[fd]
-                        if (limit is not None and fd_to_bytes[fd] + len(data) > limit):
+                        _, hard_limit = fd_to_limits[fd]
+                        if (hard_limit is not None and
+                                fd_to_bytes[fd] + len(data) > hard_limit):
                             # Don't write to this outfile in subsequent rounds.
                             fd_to_outfile[fd] = None
-                            msg = 'too much output to {}'.format(outfile.name)
+                            msg = (
+                                '{} wrote {} KiB (hard limit) to {} ->'
+                                ' abort command'.format(
+                                    self.name, hard_limit / 1024, outfile.name))
                             sys.stderr.write('Error: {}\n'.format(msg))
-                            add_unexplained_error(msg.replace(' ', '-'))
+                            add_unexplained_error(msg)
                             self.process.terminate()
                             # Strip extra bytes.
-                            data = data[:limit - fd_to_bytes[fd]]
+                            data = data[:hard_limit - fd_to_bytes[fd]]
                         outfile.write(data)
-                        outfile.flush()
                         fd_to_bytes[fd] += len(data)
                 else:
                     # Ignore hang up or errors.
                     close_unregister_and_remove(fd)
 
+        # Check soft limit.
+        for fd, outfile in fd_to_outfile.items():
+            # Ignore streams that exceeded the hard limit.
+            if outfile is not None:
+                soft_limit, _ = fd_to_limits[fd]
+                bytes_written = fd_to_bytes[fd]
+                if (soft_limit is not None and bytes_written > soft_limit):
+                    msg = (
+                        '{} finished and wrote {} KiB to {} (soft limit: {} KiB)'.format(
+                            self.name, bytes_written / 1024, outfile.name,
+                            soft_limit / 1024))
+                    print 'Warning: {}'.format(msg)
+                    add_unexplained_error(msg)
+
     def wait(self):
         wall_clock_start_time = time.time()
         self._redirect_streams()
         retcode = self.process.wait()
+        for stream, (soft_limit, _) in self.redirected_streams_and_limits.values():
+            # Write output to disk before the next Call starts.
+            stream.flush()
+            os.fsync(stream.fileno())
+
+        # Close files that were opened in the constructor.
         for file in self.opened_files:
             file.close()
         wall_clock_time = time.time() - wall_clock_start_time

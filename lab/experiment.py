@@ -20,7 +20,6 @@
 from collections import OrderedDict
 import logging
 import os
-import pkgutil
 import sys
 
 from lab import environments
@@ -158,7 +157,9 @@ class _Buildable(object):
         self.new_files.append((dest, content, permissions))
 
     def add_command(self, name, command, time_limit=None, memory_limit=None,
-                    stdout_limit=100 * 1024, stderr_limit=1024, **kwargs):
+                    soft_stdout_limit=1024, hard_stdout_limit=100 * 1024,
+                    soft_stderr_limit=1024, hard_stderr_limit=100 * 1024,
+                    **kwargs):
         """Call an executable.
 
         If invoked on a *run*, this method adds the command to the
@@ -170,20 +171,23 @@ class _Buildable(object):
         *command* has to be a list of strings where the first item is
         the executable.
 
-        After *time_limit* seconds the signal SIXCPU is sent to the
+        After *time_limit* seconds the signal SIGXCPU is sent to the
         command. The process can catch this signal and exit gracefully.
-        If it doesn't catch the SIXCPU signal, the command is aborted
+        If it doesn't catch the SIGXCPU signal, the command is aborted
         with SIGKILL after five additional seconds.
 
         The command is aborted with SIGKILL when it uses more than
         *memory_limit* MiB.
 
-        After writing *log_limit* KiB to stdout or stderr the command is
-        killed with SIGTERM. This signal can be caught and handled by
-        the process.
+        You can limit the log size (in KiB) with a soft and hard limit
+        for both stdout and stderr. When the soft limit is hit, an
+        unexplained error is registered for this run, but the command is
+        allowed to continue running. When the hard limit is hit, the
+        command is killed with SIGTERM. This signal can be caught and
+        handled by the process.
 
-        By default, time and memory are not restricted, but output to
-        stdout and stderr is limited to 5 and 1 MiB, respectively.
+        By default, there are limits for the log and error output, but
+        time and memory are not restricted.
 
         All *kwargs* (except ``stdin``) are passed to `subprocess.Popen
         <http://docs.python.org/library/subprocess.html>`_. Instead of
@@ -219,8 +223,10 @@ class _Buildable(object):
             logging.critical('redirecting stdin is not supported')
         kwargs['time_limit'] = time_limit
         kwargs['memory_limit'] = memory_limit
-        kwargs['stdout_limit'] = stdout_limit
-        kwargs['stderr_limit'] = stderr_limit
+        kwargs['soft_stdout_limit'] = soft_stdout_limit
+        kwargs['hard_stdout_limit'] = hard_stdout_limit
+        kwargs['soft_stderr_limit'] = soft_stderr_limit
+        kwargs['hard_stderr_limit'] = hard_stderr_limit
         self.commands[name] = (command, kwargs)
 
     @property
@@ -330,14 +336,6 @@ class Experiment(_Buildable):
 
         self.set_property('experiment_file', self._script)
 
-        self.add_new_file(
-            "lab_default_parser",
-            "lab-default-parser.py",
-            pkgutil.get_data('lab', 'data/default-parser.py'),
-            permissions=0o755)
-        self.add_command(
-            "run-lab-default-parser", [sys.executable, "{lab_default_parser}"])
-
         self.steps = []
         self.add_step('build', self.build)
         self.add_step('run', self.start_runs)
@@ -428,10 +426,10 @@ class Experiment(_Buildable):
         with the *filter* argument.
 
         *parsers* can be a list of paths to parser scripts. If given,
-        each parser is called in each run directory and the results are
-        added to the properties file which is fetched afterwards. This
-        option is useful if you forgot to parse some attributes during
-        the experiment.
+        each parser is called in each run directory and each
+        ``properties`` file is updated with the results from the parser
+        and rewritten to disk. This option is useful if you forgot to
+        parse some attributes during the experiment.
 
         Example setup:
 
@@ -659,8 +657,8 @@ class Run(_Buildable):
             parts = [cmd_string]
             if kwargs_string:
                 parts.append(kwargs_string)
-            call = ('retcode = Call({}, **redirects).wait()\n'
-                    'save_returncode({name!r}, retcode)\n'.format(
+            call = ('retcode = call.Call({}, **redirects).wait()\n'
+                    'log.save_returncode({name!r}, retcode)\n'.format(
                         ', '.join(parts), **locals()))
             return call
 

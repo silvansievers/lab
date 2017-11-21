@@ -57,12 +57,11 @@ class Fetcher(object):
     def fetch_dir(self, run_dir, eval_dir, parsers=None):
         # Allow specyfing a list of multiple parsers or a single parser.
         parsers = tools.make_list(parsers or [])
-        prop_file = os.path.join(run_dir, 'properties')
-
         for parser in parsers:
             rel_parser = os.path.relpath(parser, start=run_dir)
             subprocess.call([rel_parser], cwd=run_dir)
 
+        prop_file = os.path.join(run_dir, 'properties')
         return tools.Properties(filename=prop_file)
 
     def __call__(self, src_dir, eval_dir=None, merge=None, filter=None,
@@ -87,8 +86,7 @@ class Fetcher(object):
         fetch_from_eval_dir = 'runs' not in src_props or src_dir.endswith('-eval')
 
         eval_dir = eval_dir or src_dir.rstrip('/') + '-eval'
-        logging.info('Fetching files from {} -> {}'.format(src_dir, eval_dir))
-        logging.info('Fetching from evaluation dir: {}'.format(fetch_from_eval_dir))
+        logging.info('Fetching properties from {} to {}'.format(src_dir, eval_dir))
 
         if merge is None:
             _check_eval_dir(eval_dir)
@@ -104,6 +102,18 @@ class Fetcher(object):
             run_filter.apply(src_props)
             combined_props.update(src_props)
         else:
+            try:
+                slurm_err_content = tools.get_slurm_err_content(src_dir)
+            except IOError:
+                slurm_err_content = ''
+
+            if slurm_err_content:
+                filtered = tools.filter_slurm_err_content(slurm_err_content)
+                logging.error(
+                    'Slurm error log without "memory cg" errors:\n'
+                    '{sep}\n{filtered}\n{sep}'.format(
+                        sep='*' * 72, **locals()))
+
             new_props = tools.Properties()
             run_dirs = sorted(glob(os.path.join(src_dir, 'runs-*-*', '*')))
             total_dirs = len(run_dirs)
@@ -113,6 +123,8 @@ class Fetcher(object):
                 loglevel = logging.INFO if index % 100 == 0 else logging.DEBUG
                 logging.log(loglevel, 'Scanning: {:6d}/{:d}'.format(index, total_dirs))
                 props = self.fetch_dir(run_dir, eval_dir, parsers=parsers)
+                if slurm_err_content:
+                    props.add_unexplained_error('output-to-slurm.err')
                 id_string = '-'.join(props['id'])
                 new_props[id_string] = props
             run_filter.apply(new_props)
@@ -121,7 +133,7 @@ class Fetcher(object):
         unexplained_errors = 0
         for props in combined_props.values():
             error_message = tools.get_unexplained_errors_message(props)
-            if error_message is not None:
+            if error_message:
                 logging.warning(error_message)
                 unexplained_errors += 1
 

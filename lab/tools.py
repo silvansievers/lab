@@ -197,7 +197,8 @@ def add_unexplained_error(dictionary, error):
     """
     key = 'unexplained_errors'
     dictionary.setdefault(key, [])
-    dictionary[key].append(error)
+    if error not in dictionary[key]:
+        dictionary[key].append(error)
 
 
 class Properties(dict):
@@ -446,10 +447,25 @@ def get_unexplained_errors_message(run):
     if 'error' not in run:
         add_unexplained_error(run, 'attribute-error-missing')
 
-    if run.get('unexplained_errors', []):
-        return 'Unexplained errors in "{run_dir}": {unexplained_errors}'.format(**run)
+    unexplained_errors = run.get('unexplained_errors', [])
+    if not unexplained_errors or unexplained_errors == ['output-to-slurm.err']:
+        return ''
     else:
-        return None
+        return 'Unexplained errors in "{run_dir}": {unexplained_errors}'.format(**run)
+
+
+def get_slurm_err_content(src_dir):
+    grid_steps_dir = src_dir.rstrip('/') + '-grid-steps'
+    slurm_err_filename = os.path.join(grid_steps_dir, 'slurm.err')
+    with open(slurm_err_filename) as f:
+        return f.read()
+
+
+def filter_slurm_err_content(content):
+    filtered = re.sub(
+        "slurmstepd: error: task/cgroup: unable to add task\[pid=\d+\]"
+        " to memory cg '\(null\)'\n", '', content)
+    return "\n".join(line for line in filtered.splitlines() if line.strip())
 
 
 class RawAndDefaultsHelpFormatter(argparse.HelpFormatter):
