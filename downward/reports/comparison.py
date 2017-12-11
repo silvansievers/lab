@@ -50,7 +50,7 @@ class ComparisonReport(AbsoluteReport):
         sections = []
         toc_lines = []
 
-        warnings = self._get_warnings_table()
+        warnings = self._get_warnings_text_and_table()
         if warnings:
             toc_lines.append('- **[''Unexplained Errors'' #unexplained-errors]**')
             sections.append(('unexplained-errors', warnings))
