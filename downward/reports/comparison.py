@@ -127,10 +127,10 @@ class ComparisonReport(AbsoluteReport):
                         table, summary, link='#' + 'error-' + pseudo_attribute)
                     tables.insert(suite_table_index, (pseudo_attribute, table))
             elif self.attribute_is_numeric(attribute):
-                domain_table = self._get_table(attribute)
-                tables.insert(suite_table_index, ('', domain_table))
+                suite_table = self._get_table(attribute)
+                tables.insert(suite_table_index, ('', suite_table))
                 reports.extract_summary_rows(
-                    domain_table, summary, link='#' + attribute)
+                    suite_table, summary, link='#' + attribute)
             else:
                 tables.insert(suite_table_index, (
                     '',
