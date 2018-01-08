@@ -20,8 +20,10 @@ from collections import defaultdict
 import logging
 
 from lab import reports
+from lab.reports import Attribute
 from lab.reports.markup import ESCAPE_WORDBREAK
 
+from downward import outcomes
 from downward.reports.absolute import AbsoluteReport
 
 class ComparisonReport(AbsoluteReport):
@@ -80,7 +82,51 @@ class ComparisonReport(AbsoluteReport):
             # ... and then the suite table, because it needs values computed
             # during the creation of the domain tables. Insert the table before
             # the domain tables.
-            if self.attribute_is_numeric(attribute):
+            if attribute == 'error':
+                seen_errors = set()
+                error_counter = defaultdict(int)
+
+                for run in self.runs.values():
+                    error = run.get('error', 'attribute-error-missing')
+                    seen_errors.add(error)
+                    error_counter[(run["algorithm"], run["domain"], error)] += 1
+
+                error_to_min_wins = dict(
+                    (outcome.msg, outcome.min_wins) for outcome in outcomes.OUTCOMES)
+
+                for error in sorted(seen_errors):
+                    # Txt2tags seems to only allow letters, "-" and "_" in anchors.
+                    pseudo_attribute = 'error-' + error
+                    table = self._get_empty_table(title=pseudo_attribute)
+                    min_wins = error_to_min_wins.get(error, None)
+                    table.min_wins = min_wins
+                    table.colored = min_wins is not None
+                    ### Silvan: adapt to fit ComparisonTable. We do not compute
+                    # numbers for the 'better' and 'worse columns because there
+                    # is no obvious meaning of one algorithm being better in
+                    # terms of an error in the sense that it doesn't have this
+                    # error, because it could have another potentially more
+                    # severe error for the task instead.
+                    for algo_pair in self.algorithm_pairs:
+                        for domain in self.domains:
+                            if self.use_domain_links:
+                                table.cell_formatters[domain][table.header_column] = (
+                                    reports.CellFormatter(
+                                        link='#error-{domain}'.format(**locals())))
+                            algo1_count = error_counter.get((algo_pair[0], domain, error), 0)
+                            algo2_count = error_counter.get((algo_pair[1], domain, error), 0)
+                            table.add_cell(domain, table._get_algo1_name(algo_pair), algo1_count)
+                            table.add_cell(domain, table._get_algo2_name(algo_pair), algo2_count)
+                            table.add_cell(domain, table._get_diff_col_name(algo_pair), algo2_count - algo1_count)
+                            table.add_cell(domain, table._get_better_col_name(algo_pair),
+                                           None)
+                            table.add_cell(domain, table._get_worse_col_name(algo_pair),
+                                           None)
+                    table.add_summary_function('Sum', sum)
+                    reports.extract_summary_rows(
+                        table, summary, link='#' + 'error-' + pseudo_attribute)
+                    tables.insert(suite_table_index, (pseudo_attribute, table))
+            elif self.attribute_is_numeric(attribute):
                 domain_table = self._get_table(attribute)
                 tables.insert(suite_table_index, ('', domain_table))
                 reports.extract_summary_rows(
