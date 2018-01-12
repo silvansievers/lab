@@ -516,4 +516,6 @@ class BaselSlurmEnvironment(SlurmEnvironment):
 
     ENVIRONMENT_SETUP = (
         'module load Python/2.7.11-goolf-1.7.20\n'
-        'PYTHONPATH="%s:$PYTHONPATH"' % tools.get_lab_path())
+        'PYTHONPATH="%s:$PYTHONPATH"\n' % tools.get_lab_path()
+        'LMOD_DISABLE_SAME_NAME_AUTOSWAP="no" module load GCC/5.4.0-2.26'
+    )
