@@ -528,4 +528,5 @@ class LapktSlurmEnvironment(SlurmEnvironment):
     # (see http://issues.fast-downward.org/issue733).
     DEFAULT_MEMORY_PER_CPU = '3872M'
 
-    ENVIRONMENT_SETUP = 'module load Python/2.7.11-goolf-1.7.20\n' + 'PYTHONPATH="{}:$PYTHONPATH"\n'.format(tools.get_lab_path()) + 'LMOD_REDIRECT="yes" LMOD_DISABLE_SAME_NAME_AUTOSWAP="no" module load GCC/5.4.0-2.26'
+    ENVIRONMENT_SETUP = 'module load Python/2.7.11-goolf-1.7.20\n' + 'PYTHONPATH="{}:$PYTHONPATH"\n'.format(tools.get_lab_path()) + 'LMOD_DISABLE_SAME_NAME_AUTOSWAP="no" module load GCC/5.4.0-2.26'
+ 
