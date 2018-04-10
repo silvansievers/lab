@@ -22,7 +22,6 @@ A module for running Fast Downward experiments.
 
 from collections import defaultdict, OrderedDict
 import logging
-import multiprocessing
 import os.path
 import sys
 
@@ -98,9 +97,6 @@ class FastDownwardExperiment(Experiment):
 
     """
 
-    DEFAULT_SEARCH_TIME_LIMIT = "30m"
-    DEFAULT_SEARCH_MEMORY_LIMIT = "2G"
-
     def __init__(self, path=None, environment=None, revision_cache=None):
         """
         See :class:`lab.experiment.Experiment` for an explanation of
@@ -111,8 +107,8 @@ class FastDownwardExperiment(Experiment):
         This directory can become very large since each revision uses
         about 30 MB.
 
-        >>> from lab.environments import MaiaEnvironment
-        >>> env = MaiaEnvironment(priority=-2)
+        >>> from lab.environments import BaselSlurmEnvironment
+        >>> env = BaselSlurmEnvironment(email="my.name@unibas.ch")
         >>> exp = FastDownwardExperiment(environment=env)
 
         If running a translator-only experiment, i.e. all algorithms use the
@@ -133,7 +129,7 @@ class FastDownwardExperiment(Experiment):
         self.add_command('parse-exitcode', [sys.executable, '{exitcode_parser}'])
         self.add_command('parse-preprocess', [sys.executable, '{preprocess_parser}'])
         self.add_command('parse-search', [sys.executable, '{search_parser}'])
-        self.add_command('remove-output-sas', ['rm', 'output.sas'])
+        self.add_command('remove-output-sas', ['rm', '-f', 'output.sas'])
 
     def _get_tasks(self):
         tasks = []
@@ -199,20 +195,17 @@ class FastDownwardExperiment(Experiment):
         the default for the following options, until overridden again.
 
         If given, *build_options* must be a list of strings. They will
-        be passed to the ``build.py`` script. Options can be build
-        names (e.g., ``"release32"``, ``"debug64"``), ``build.py``
-        options (e.g., ``"--debug"``) or options for Make. The list is
-        always prepended with ``["-j<num_cpus>"]``. This setting can be
-        overriden, e.g., ``driver_options=["-j1"]`` builds the planner
-        using a single CPU. If *build_options* is omitted, the
-        ``"release32"`` version is built using all CPUs.
+        be passed to the ``build.py`` script. Options can be build names
+        (e.g., ``"release32"``, ``"debug64"``), ``build.py`` options
+        (e.g., ``"--debug"``) or options for Make. If *build_options* is
+        omitted, the ``"release32"`` version is built.
 
         If given, *driver_options* must be a list of strings. They will
         be passed to the ``fast-downward.py`` script. See
         ``fast-downward.py --help`` for available options. The list is
-        always prepended with ``["--validate", "--search-time-limit",
-        "30m", "--search-memory-limit', "2G"]``. Specifying custom
-        limits will override the default limits.
+        always prepended with ``["--validate", "--overall-time-limit",
+        "30m", "--overall-memory-limit', "3584M"]``. Specifying custom
+        limits overrides the default limits.
 
         Example experiment setup:
 
@@ -248,25 +241,25 @@ class FastDownwardExperiment(Experiment):
         ...     build_options=["release64"],
         ...     driver_options=["--build", "release64"])
 
-        Run LAMA-2011 with custom search time limit:
+        Run LAMA-2011 with custom planner time limit:
 
         >>> exp.add_algorithm(
         ...     "lama", repo, "default",
         ...     [],
         ...     driver_options=[
         ...         "--alias", "seq-saq-lama-2011",
-        ...         "--search-time-limit", "5m"])
+        ...         "--overall-time-limit", "5m"])
 
         """
         if not isinstance(name, basestring):
             logging.critical('Algorithm name must be a string: {}'.format(name))
         if name in self._algorithms:
             logging.critical('Algorithm names must be unique: {}'.format(name))
-        build_options = self._get_default_build_options() + (build_options or [])
+        build_options = build_options or []
         driver_options = ([
             '--validate',
-            '--search-time-limit', self.DEFAULT_SEARCH_TIME_LIMIT,
-            '--search-memory-limit', self.DEFAULT_SEARCH_MEMORY_LIMIT] +
+            '--overall-time-limit', '30m',
+            '--overall-memory-limit', '3584M'] +
             (driver_options or []))
         self._algorithms[name] = _DownwardAlgorithm(
             name, CachedRevision(repo, rev, build_options),
@@ -302,10 +295,6 @@ class FastDownwardExperiment(Experiment):
         for algo in self._algorithms.values():
             unique_cached_revs.add(algo.cached_revision)
         return unique_cached_revs
-
-    def _get_default_build_options(self):
-        cores = multiprocessing.cpu_count()
-        return ['-j{}'.format(cores)]
 
     def _cache_revisions(self):
         for cached_rev in self._get_unique_cached_revisions():

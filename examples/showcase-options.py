@@ -9,7 +9,7 @@ import platform
 import shutil
 from subprocess import call
 
-from lab.environments import LocalEnvironment, MaiaEnvironment
+from lab.environments import LocalEnvironment, BaselSlurmEnvironment
 from lab.steps import Step
 from lab.reports.filter import FilterReport
 
@@ -21,9 +21,10 @@ from downward.reports.taskwise import TaskwiseReport
 
 
 DIR = os.path.dirname(os.path.abspath(__file__))
-REMOTE = 'cluster' in platform.node()
+NODE = platform.node()
+REMOTE = NODE.endswith(".scicore.unibas.ch") or NODE.endswith(".cluster.bc2.ch")
 if REMOTE:
-    ENV = MaiaEnvironment()
+    ENV = BaselSlurmEnvironment("my.name@unibas.ch")
 else:
     ENV = LocalEnvironment(processes=4)
 REPO = os.environ["DOWNWARD_REPO"]
@@ -31,7 +32,6 @@ BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 REV_CACHE = os.path.expanduser('~/lab/revision-cache')
 REV = 'tip'
 ATTRIBUTES = ['coverage']
-EXPNAME = 'showcase-options'
 
 exp = FastDownwardExperiment(environment=ENV, revision_cache=REV_CACHE)
 
@@ -78,9 +78,6 @@ exp.add_fetcher(
     dest=eval_dir(1), name='fetcher-test1', filter=only_two_algorithms)
 exp.add_fetcher(
     dest=eval_dir(2), name='fetcher-test2', filter_algorithm='lama11')
-exp.add_fetcher(
-    dest=eval_dir(3), name='fetcher-test3',
-    parsers=os.path.join(DIR, 'simple', 'simple-parser.py'))
 
 
 # Add report steps

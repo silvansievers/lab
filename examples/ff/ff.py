@@ -8,7 +8,7 @@ Example experiment for the FF planner
 import os
 import platform
 
-from lab.environments import LocalEnvironment, MaiaEnvironment
+from lab.environments import LocalEnvironment, BaselSlurmEnvironment
 from lab.experiment import Experiment
 
 # In the future, these modules should live in a separate
@@ -17,10 +17,11 @@ from downward import suites
 from downward.reports.absolute import AbsoluteReport
 
 
-REMOTE = 'cluster' in platform.node()
+NODE = platform.node()
+REMOTE = NODE.endswith(".scicore.unibas.ch") or NODE.endswith(".cluster.bc2.ch")
 BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 if REMOTE:
-    ENV = MaiaEnvironment()
+    ENV = BaselSlurmEnvironment(email="my.name@unibas.ch")
 else:
     ENV = LocalEnvironment(processes=4)
 SUITE = [
