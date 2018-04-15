@@ -23,7 +23,6 @@ A module for running Fast Downward experiments.
 from collections import defaultdict, OrderedDict
 import logging
 import os.path
-import sys
 
 from lab.experiment import Run, Experiment, get_default_data_dir
 
@@ -97,6 +96,26 @@ class FastDownwardExperiment(Experiment):
 
     """
 
+    # Built-in parsers that can be passed to exp.add_parser().
+
+    #: Needed attributes: fast-downward_returncode
+    #:
+    #: Parsed attributes: error, unsolvable
+    EXITCODE_PARSER = os.path.join(
+        DOWNWARD_SCRIPTS_DIR, 'exitcode-parser.py')
+
+    #: Parsed attributes: translator_variables, translator_time_done, etc.
+    TRANSLATOR_PARSER = os.path.join(
+        DOWNWARD_SCRIPTS_DIR, 'translator-parser.py')
+
+    #: Parsed attributes: coverage, expansions_until_last_jump, total_time, etc.
+    SINGLE_SEARCH_PARSER = os.path.join(
+        DOWNWARD_SCRIPTS_DIR, 'single-search-parser.py')
+
+    #: Parsed attributes: cost, cost:all, coverage
+    ANYTIME_SEARCH_PARSER = os.path.join(
+        DOWNWARD_SCRIPTS_DIR, 'anytime-search-parser.py')
+
     def __init__(self, path=None, environment=None, revision_cache=None):
         """
         See :class:`lab.experiment.Experiment` for an explanation of
@@ -111,10 +130,19 @@ class FastDownwardExperiment(Experiment):
         >>> env = BaselSlurmEnvironment(email="my.name@unibas.ch")
         >>> exp = FastDownwardExperiment(environment=env)
 
-        If running a translator-only experiment, i.e. all algorithms use the
-        driver option --translate but not --search, then use
-        ``del exp.commands['parse-search']`` to avoid errors due to
-        running the default search parser without running the search.
+        You can add parsers with :meth:`.add_parser()`. Two parsers are
+        required and have to be added in the following order:
+
+        >>> exp.add_parser('lab_driver_parser', exp.LAB_DRIVER_PARSER)
+        >>> exp.add_parser('exitcode_parser', exp.EXITCODE_PARSER)
+
+        You can add other parsers depending on the algorithms you're
+        running:
+
+        >>> exp.add_parser('translator_parser', exp.TRANSLATOR_PARSER)
+        >>> exp.add_parser('single_search_parser', exp.SINGLE_SEARCH_PARSER)
+        >>> exp.add_parser('anytime_parser', exp.ANYTIME_SEARCH_PARSER)
+
         """
         Experiment.__init__(self, path=path, environment=environment)
 
@@ -126,9 +154,6 @@ class FastDownwardExperiment(Experiment):
         # Use OrderedDict to ensure that names are unique and ordered.
         self._algorithms = OrderedDict()
 
-        self.add_command('parse-exitcode', [sys.executable, '{exitcode_parser}'])
-        self.add_command('parse-preprocess', [sys.executable, '{preprocess_parser}'])
-        self.add_command('parse-search', [sys.executable, '{search_parser}'])
         self.add_command('remove-output-sas', ['rm', '-f', 'output.sas'])
 
     def _get_tasks(self):
@@ -302,16 +327,6 @@ class FastDownwardExperiment(Experiment):
 
     def _add_code(self):
         """Add the compiled code to the experiment."""
-        self.add_resource(
-            'exitcode_parser',
-            os.path.join(DOWNWARD_SCRIPTS_DIR, 'exitcode_parser.py'))
-        self.add_resource(
-            'preprocess_parser',
-            os.path.join(DOWNWARD_SCRIPTS_DIR, 'preprocess_parser.py'))
-        self.add_resource(
-            'search_parser',
-            os.path.join(DOWNWARD_SCRIPTS_DIR, 'search_parser.py'))
-
         for cached_rev in self._get_unique_cached_revisions():
             self.add_resource(
                 '',
