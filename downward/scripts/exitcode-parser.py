@@ -36,12 +36,8 @@ def _get_planner_exitcode(props):
         sys.exit('Attribute {} is missing.'.format(attr))
     return exitcode
 
-def unsolvable_incomplete(content, props):
-    outcome = outcomes.get_outcome(props['fast-downward_returncode'])
-    props['unsolvable_incomplete'] = int(outcome and outcome.msg == 'incomplete-search-found-no-plan')
 
-
-def get_error(content, props):
+def get_search_error(content, props):
     """
     Convert the exitcode of the planner to a human-readable message and store
     it in props['error']. Additionally, if there was an unexplained error, add
@@ -65,10 +61,15 @@ def unsolvable(content, props):
     props['unsolvable'] = int(outcome and outcome.msg == 'unsolvable')
 
 
+def unsolvable_incomplete(content, props):
+    outcome = outcomes.get_outcome(props['fast-downward_returncode'])
+    props['unsolvable_incomplete'] = int(outcome and outcome.msg == 'incomplete-search-found-no-plan')
+
+
 class ExitCodeParser(Parser):
     def __init__(self):
         Parser.__init__(self)
-        self.add_function(get_error)
+        self.add_function(get_search_error)
         self.add_function(unsolvable)
         self.add_function(unsolvable_incomplete)
 
