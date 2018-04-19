@@ -63,7 +63,8 @@ def unsolvable(content, props):
 
 def unsolvable_incomplete(content, props):
     outcome = outcomes.get_outcome(props['fast-downward_returncode'])
-    props['unsolvable_incomplete'] = int(outcome and outcome.msg == 'incomplete-search-found-no-plan')
+    props['unsolvable_incomplete'] = int(
+        outcome and outcome.msg == 'incomplete-search-found-no-plan')
 
 
 class ExitCodeParser(Parser):

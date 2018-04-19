@@ -24,7 +24,6 @@ from lab import reports
 from downward.reports import PlanningReport
 
 
-
 class AbsoluteReport(PlanningReport):
     """
     Report absolute values for the selected attributes.
@@ -129,8 +128,10 @@ class AbsoluteReport(PlanningReport):
         print "from aggregation"
         attribute_algo_values_from_aggregated = defaultdict(list)
         for (attribute, domain, algo) in sorted(self.attribute_domain_algo_values.keys()):
-            #print '{}: {}'.format((attribute, domain, algo), self.attribute_domain_algo_values[attribute, domain, algo])
-            attribute_algo_values_from_aggregated[attribute, algo].append(self.attribute_domain_algo_values[attribute, domain, algo])
+            # print '{}: {}'.format((attribute, domain, algo),
+            # self.attribute_domain_algo_values[attribute, domain, algo])
+            attribute_algo_values_from_aggregated[attribute, algo].append(
+                self.attribute_domain_algo_values[attribute, domain, algo])
         for (attribute, algo), values in attribute_algo_values_from_aggregated.items():
             if attribute == 'ms_construction_time':
                 function = reports.arithmetic_mean
@@ -148,7 +149,8 @@ class AbsoluteReport(PlanningReport):
                 function = reports.geometric_mean
             else:
                 assert False
-            print '{}: {}'.format((attribute, algo), function(self.attribute_algo_values[attribute, algo]))
+            print '{}: {}'.format((attribute, algo), function(
+                self.attribute_algo_values[attribute, algo]))
         return '%s\n\n\n%s' % (toc, content)
 
     def _get_general_info(self):
@@ -226,7 +228,7 @@ class AbsoluteReport(PlanningReport):
         for (domain, algo), values in domain_algo_values.items():
             self.attribute_domain_algo_values[str(attribute), domain, algo] = func(values)
             self.attribute_algo_values[str(attribute), algo].extend(values)
-            #print "{}, {}, {}".format(domain, algo, func(values))
+            # print "{}, {}, {}".format(domain, algo, func(values))
             table.add_cell(domain, algo, func(values))
 
         table.num_values = num_probs

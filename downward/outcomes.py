@@ -40,7 +40,7 @@ OUTCOMES = [
     Outcome(6, 'out-of-memory', explained=True, min_wins=True),
     Outcome(7, 'timeout', explained=True, min_wins=True),
     Outcome(8, 'timeout-and-out-of-memory', explained=True, min_wins=True),
-    Outcome(100, 'out-of-memory', explained=True, min_wins=True), # translator
+    Outcome(100, 'out-of-memory', explained=True, min_wins=True),  # translator
     Outcome(get_exit_code(signal.SIGKILL), 'sigkill', explained=False, min_wins=True),
     Outcome(get_exit_code(signal.SIGSEGV), 'segfault', explained=False, min_wins=True),
     Outcome(get_exit_code(signal.SIGXCPU), 'timeout', explained=True, min_wins=True),

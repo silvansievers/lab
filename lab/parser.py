@@ -217,7 +217,7 @@ class Parser(object):
             try:
                 file_parser.load_file(path)
             except (IOError, MemoryError) as err:
-                if filename != 'run.err': # ignore previously deleted empty run.err files
+                if filename != 'run.err':  # ignore previously deleted empty run.err files
                     logging.error('File "%s" could not be read: %s' % (path, err))
                     self.props.add_unexplained_error('parser-failed-to-read-file')
             else:

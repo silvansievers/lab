@@ -20,11 +20,11 @@ from collections import defaultdict
 import logging
 
 from lab import reports
-from lab.reports import Attribute
 from lab.reports.markup import ESCAPE_WORDBREAK
 
 from downward import outcomes
 from downward.reports.absolute import AbsoluteReport
+
 
 class ComparisonReport(AbsoluteReport):
     def __init__(self, algorithm_pairs, **kwargs):
@@ -73,7 +73,7 @@ class ComparisonReport(AbsoluteReport):
         for attribute in self.attributes:
             logging.info('Creating table(s) for %s' % attribute)
             tables = []
-            ### Silvan: modified compared to absolute report
+            # Silvan: modified compared to absolute report
             # First create the domain tables...
             suite_table_index = len(tables)
             for domain in sorted(self.domains.keys()):
@@ -101,7 +101,7 @@ class ComparisonReport(AbsoluteReport):
                     min_wins = error_to_min_wins.get(error, None)
                     table.min_wins = min_wins
                     table.colored = min_wins is not None
-                    ### Silvan: adapt to fit ComparisonTable. We do not compute
+                    # Silvan: adapt to fit ComparisonTable. We do not compute
                     # numbers for the 'better' and 'worse columns because there
                     # is no obvious meaning of one algorithm being better in
                     # terms of an error in the sense that it doesn't have this
@@ -113,11 +113,17 @@ class ComparisonReport(AbsoluteReport):
                                 table.cell_formatters[domain][table.header_column] = (
                                     reports.CellFormatter(
                                         link='#error-{domain}'.format(**locals())))
-                            algo1_count = error_counter.get((algo_pair[0], domain, error), 0)
-                            algo2_count = error_counter.get((algo_pair[1], domain, error), 0)
-                            table.add_cell(domain, table._get_algo1_name(algo_pair), algo1_count)
-                            table.add_cell(domain, table._get_algo2_name(algo_pair), algo2_count)
-                            table.add_cell(domain, table._get_diff_col_name(algo_pair), algo2_count - algo1_count)
+                            algo1_count = error_counter.get(
+                                (algo_pair[0], domain, error), 0)
+                            algo2_count = error_counter.get(
+                                (algo_pair[1], domain, error), 0)
+                            table.add_cell(
+                                domain, table._get_algo1_name(algo_pair), algo1_count)
+                            table.add_cell(
+                                domain, table._get_algo2_name(algo_pair), algo2_count)
+                            table.add_cell(
+                                domain, table._get_diff_col_name(algo_pair),
+                                algo2_count - algo1_count)
                             table.add_cell(domain, table._get_better_col_name(algo_pair),
                                            None)
                             table.add_cell(domain, table._get_worse_col_name(algo_pair),
@@ -137,7 +143,7 @@ class ComparisonReport(AbsoluteReport):
                     'Domain-wise reports only support numeric '
                     'attributes, but %s has type %s.' %
                     (attribute, self._all_attributes[attribute].__name__)))
-            ### end modifications
+            # Silvan: end modifications
 
             parts = []
             toc_line = []
@@ -185,7 +191,8 @@ class ComparisonReport(AbsoluteReport):
             domain_algo_values = defaultdict(list)
             for (domain, problem), runs in self.problem_runs.items():
                 if (not attribute.absolute and
-                    any(run.get(attribute) is None for run in runs if run['algorithm'] in algo_pair)):
+                        (any(run.get(attribute) is None for run in runs
+                             if run['algorithm'] in algo_pair))):
                     continue
                 for run in runs:
                     if run['algorithm'] in algo_pair:
@@ -207,7 +214,8 @@ class ComparisonReport(AbsoluteReport):
                 if len(values_algo1) == len(values_algo2):
                     num_values_lists[domain].append(str(len(values_algo1)))
                 else:
-                    num_values_lists[domain].append(str((len(values_algo1), len(values_algo2))))
+                    num_values_lists[domain].append(
+                        str((len(values_algo1), len(values_algo2))))
                 aggregated_algo1 = None
                 aggregated_algo2 = None
                 if len(values_algo1) > 0:
@@ -221,10 +229,12 @@ class ComparisonReport(AbsoluteReport):
                 table.add_cell(domain, table._get_algo1_name(algo_pair), aggregated_algo1)
                 table.add_cell(domain, table._get_algo2_name(algo_pair), aggregated_algo2)
                 table.add_cell(domain, table._get_diff_col_name(algo_pair), diff)
-                table.add_cell(domain, table._get_better_col_name(algo_pair),
-                               self.algopair_domain_attribute_better[algo_pair, domain, attribute])
-                table.add_cell(domain, table._get_worse_col_name(algo_pair),
-                               self.algopair_domain_attribute_worse[algo_pair, domain, attribute])
+                table.add_cell(
+                    domain, table._get_better_col_name(algo_pair),
+                    self.algopair_domain_attribute_better[algo_pair, domain, attribute])
+                table.add_cell(
+                    domain, table._get_worse_col_name(algo_pair),
+                    self.algopair_domain_attribute_worse[algo_pair, domain, attribute])
 
         # Format all header column entries to use links and display number of
         # tasks used for each comparison.
@@ -266,12 +276,16 @@ class ComparisonReport(AbsoluteReport):
                 better = 0
                 worse = 0
                 if diff is not None:
-                    if (diff < 0 and min_wins) or (diff > 0 and not min_wins): # algo2 is better
+                    if (diff < 0 and min_wins) or (diff > 0 and not min_wins):
+                        # algo2 is better
                         better = 1
-                        self.algopair_domain_attribute_better[algo_pair, domain, attribute] += 1
-                    elif (diff > 0 and min_wins) or (diff < 0 and not min_wins): # algo2 is worse
+                        self.algopair_domain_attribute_better[
+                            algo_pair, domain, attribute] += 1
+                    elif (diff > 0 and min_wins) or (diff < 0 and not min_wins):
+                        # algo2 is worse
                         worse = 1
-                        self.algopair_domain_attribute_worse[algo_pair, domain, attribute] += 1
+                        self.algopair_domain_attribute_worse[
+                            algo_pair, domain, attribute] += 1
 
                 table.add_cell(problem, table._get_algo1_name(algo_pair), algo1_value)
                 table.add_cell(problem, table._get_algo2_name(algo_pair), algo2_value)
@@ -304,6 +318,7 @@ class ComparisonReport(AbsoluteReport):
         table.cell_formatters[table.header_row][table.header_column] = formatter
         return table
 
+
 class ComparisonTable(reports.Table):
     def __init__(self, title, algorithm_pairs, min_wins=None, colored=False, digits=2):
         reports.Table.__init__(self, title, min_wins, colored, digits)
@@ -327,15 +342,15 @@ class ComparisonTable(reports.Table):
         return self.algopair_columnname[algo_pair][1]
 
     def _get_diff_col_name(self, algo_pair):
-        #return 'Diff-%s-%s' % (algo_pair[0], algo_pair[1])
+        # return 'Diff-%s-%s' % (algo_pair[0], algo_pair[1])
         return self.algopair_columnname[algo_pair][2]
 
     def _get_better_col_name(self, algo_pair):
-        #return '%s-better-than-%s' % (algo_pair[1], algo_pair[0])
+        # return '%s-better-than-%s' % (algo_pair[1], algo_pair[0])
         return self.algopair_columnname[algo_pair][3]
 
     def _get_worse_col_name(self, algo_pair):
-        #return '%s-worse-than-%s' % (algo_pair[1], algo_pair[0])
+        # return '%s-worse-than-%s' % (algo_pair[1], algo_pair[0])
         return self.algopair_columnname[algo_pair][4]
 
     def get_col_names_for_algorithm_pair(self, algo_pair):
@@ -409,35 +424,35 @@ class ComparisonTable(reports.Table):
             diff = values[2]
             if min_wins is not None and diff is not None:
                 # Highlight the value and the diff columns if the difference is non-zero
-                if (min_wins and diff < 0) or (not min_wins and diff > 0): # algo2 wins
+                if (min_wins and diff < 0) or (not min_wins and diff > 0):  # algo2 wins
                     if self.colored:
                         colors[0] = 'blue'
                         colors[1] = 'blue'
                         colors[2] = 'green'
                     else:
-                        #bolds[1] = True
+                        # bolds[1] = True
                         bolds[2] = True
 
-                if (min_wins and diff > 0) or (not min_wins and diff < 0): # algo1 wins
+                if (min_wins and diff > 0) or (not min_wins and diff < 0):  # algo1 wins
                     if self.colored:
                         colors[0] = 'blue'
                         colors[1] = 'blue'
                         colors[2] = 'red'
-                    #else:
-                        #bolds[0] = True
+                    # else:
+                        # bolds[0] = True
 
                 # Always highlight better/worse columns (even if the difference
                 # coincidentally is 0)
                 if self.colored:
-                    if values[3]: # better column: color green if non-zero
+                    if values[3]:  # better column: color green if non-zero
                         colors[3] = 'green'
-                    if values[4]: # worse column: color red if non-zero
+                    if values[4]:  # worse column: color red if non-zero
                         colors[4] = 'red'
-                #else:
-                    #if values[3]: # better column: color green if non-zero
-                        #bolds[3] = True
-                    #if values[4]: # worse column: color red if non-zero
-                        #bolds[4] = True
+                # else:
+                    # if values[3]: # better column: color green if non-zero
+                        # bolds[3] = True
+                    # if values[4]: # worse column: color red if non-zero
+                        # bolds[4] = True
 
             for index, col_name in enumerate(col_names):
                 row[col_name] = self._format_cell(
