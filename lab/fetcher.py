@@ -136,6 +136,6 @@ class Fetcher(object):
         logging.info('Wrote properties file')
 
         if unexplained_errors:
-            logging.critical(
+            logging.info(
                 'There were {} runs with unexplained errors.'.format(
                     unexplained_errors))
