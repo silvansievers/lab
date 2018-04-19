@@ -389,7 +389,7 @@ class SlurmEnvironment(GridEnvironment):
 class BaselSlurmEnvironment(SlurmEnvironment):
     """Environment for Basel's AI group."""
 
-    DEFAULT_PARTITION = 'infai_1'
+    DEFAULT_PARTITION = 'infai_2'
     DEFAULT_QOS = 'normal'
     # infai nodes have 61964 MiB and 16 cores => 3872.75 MiB per core
     # (see http://issues.fast-downward.org/issue733).
