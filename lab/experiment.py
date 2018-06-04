@@ -76,6 +76,20 @@ def get_run_dir(task_id):
     return "runs-{lower:0>5}-{upper:0>5}/{task_id:0>5}".format(**locals())
 
 
+def _check_name(name, typ, extra_chars=''):
+    if not isinstance(name, basestring):
+        logging.critical('Name for {typ} must be a string: {name}'.format(**locals()))
+    if not name:
+        logging.critical('Name for {typ} must not be empty'.format(**locals()))
+    alpha_num_name = name
+    for c in extra_chars:
+        alpha_num_name = alpha_num_name.replace(c, '')
+    if not (name[0].isalpha() and alpha_num_name.isalnum()):
+        logging.critical(
+            'Name for {typ} must start with a letter and may use characters from'
+            ' [A-Z], [a-z], [0-9], [{extra_chars}]: {name}'.format(**locals()))
+
+
 class _Resource(object):
     def __init__(self, name, source, dest, symlink, is_parser):
         self.name = name
@@ -115,13 +129,10 @@ class _Buildable(object):
         self.properties[name] = value
 
     def _check_alias(self, name):
-        assert name
-        if not (name[0].isalpha() and name.replace('_', '').isalnum()):
-            logging.critical(
-                'Resource names must start with a letter and consist '
-                'exclusively of letters, numbers and underscores: {}'.format(name))
+        _check_name(name, 'parser or resource', extra_chars='_')
         if name in self.env_vars_relative:
-            logging.critical('Resource names must be unique: {!r}'.format(name))
+            logging.critical(
+                'Parser and resource names must be unique: {!r}'.format(name))
 
     def add_resource(self, name, source, dest='', symlink=False):
         """Include the file or directory *source* in the experiment or run.
@@ -184,7 +195,9 @@ class _Buildable(object):
         **specific** run. If invoked on the experiment, the command is
         appended to the list of commands of **all** runs.
 
-        *name* is a string describing the command.
+        *name* is a string describing the command. It must start with a
+        letter and consist exclusively of letters, numbers, underscores
+        and hyphens.
 
         *command* has to be a list of strings where the first item is
         the executable.
@@ -213,30 +226,26 @@ class _Buildable(object):
         ``stderr`` keyword arguments. Specifying the ``stdin`` kwarg is
         not supported.
 
-        Examples::
-
-            # Add a command to a *specific* run.
-            run.add_command('list-directory', ['ls', '-al'])
-            run.add_command(
-                'solver', [path-to-solver, 'input-file'], time_limit=60)
-            run.add_command(
-                'preprocess', ['preprocessor-path'], stdin='output.sas')
-
-            # Add a command to *all* runs.
-            exp.add_command('cleanup', ['rm', 'my-temp-file'])
+        >>> exp = Experiment()
+        >>> run = exp.add_run()
+        >>> # Add commands to a *specific* run.
+        >>> run.add_command('list-directory', ['ls', '-al'])
+        >>> run.add_command(
+        ...     'solver', ['mysolver', 'input-file'], time_limit=60)
+        >>> # Add a command to *all* runs.
+        >>> exp.add_command('cleanup', ['rm', 'my-temp-file'])
 
         """
-        if not isinstance(name, basestring):
-            logging.critical('name %s is not a string' % name)
-        if not isinstance(command, (list, tuple)):
-            logging.critical('%s is not a list' % command)
-        if not command:
-            logging.critical('command "%s" cannot be empty' % name)
-        if '"' in name:
-            logging.critical(
-                'command name mustn\'t contain double-quotes: {}'.format(name))
+        _check_name(name, "command", extra_chars='_-')
         if name in self.commands:
-            logging.critical('a command named "%s" has already been added' % name)
+            logging.critical('Command names must be unique: {}'.format(name))
+
+        if not isinstance(command, list):
+            logging.critical(
+                'The command for {name} is not a list: {command}'.format(**locals()))
+        if not command:
+            logging.critical('Command "{}" must not be empty'.format(name))
+
         if 'stdin' in kwargs:
             logging.critical('redirecting stdin is not supported')
         kwargs['time_limit'] = time_limit
@@ -299,36 +308,43 @@ class _Buildable(object):
 
 
 class Experiment(_Buildable):
-    """Base class for lab experiments.
+    """Base class for Lab experiments.
 
-    An **experiment** consists of multiple **runs**. Each run consists
-    of multiple **commands**.
-
-    Here is a simple example:
+    An **experiment** consists of multiple **steps**. Most experiments
+    will have steps for building and executing the experiment:
 
     >>> exp = Experiment()
-    >>> run = exp.add_run()
-    >>> run.add_command('greet', ['echo', 'hello world'])
-    >>> run.set_property('id', ['1'])  # Runs need unique IDs.
+    >>> exp.add_step('build', exp.build)
+    >>> exp.add_step('start', exp.start_runs)
 
-    An **experiment** also has multiple **steps**. By default the
-    following ones are present:
+    Moreover, there are usually steps for fetching the results and
+    making reports:
 
-    * Build the experiment.
-    * Execute all runs.
-    * Fetch the results.
+    >>> from lab.reports import Report
+    >>> exp.add_fetcher(name='fetch')
+    >>> exp.add_report(Report(attributes=["error"]))
 
-    You can add report steps with :meth:`.add_report`.
+    When calling :meth:`.start_runs`, all **runs** part of the
+    experiment are executed. You can add runs with the :meth:`.add_run`
+    method. Each run needs a unique ID and at least one **command**:
 
-    You can start an experiment's steps by calling ::
+    >>> for algo in ["algo1", "algo2"]:
+    ...     for value in range(10):
+    ...         run = exp.add_run()
+    ...         run.set_property('id', [algo, str(value)])
+    ...         run.add_command('solve', [algo, str(value)])
 
-        exp.run_steps()
-
-    This will parse the commandline and execute the selected steps.
+    You can pass the names of selected steps to your experiment script
+    or use ``--all`` to execute all steps. At the end of your script,
+    call ``exp.run_steps()`` to parse the commandline and execute the
+    selected steps.
 
     """
 
-    #: Parsed attributes: \*_returncode, \*_wall_clock_time
+    #: Built-in parser that parses returncodes,
+    #: wall-clock times and unexplained errors of all commands.
+    #:
+    #: Parsed attributes: unexplained_errors, \*_returncode, \*_wall_clock_time
     LAB_DRIVER_PARSER = os.path.join(
         LAB_SCRIPTS_DIR, 'driver-properties-parser.py')
 
@@ -357,6 +373,7 @@ class Experiment(_Buildable):
         self.environment = environment or environments.LocalEnvironment()
         self.environment.exp = self
 
+        self.steps = []
         self.runs = []
 
         # Add a default parser to copy 'static-run-properties' to 'properties'.
@@ -367,11 +384,6 @@ class Experiment(_Buildable):
             os.path.join(LAB_SCRIPTS_DIR, 'static-properties-parser.py'))
 
         self.set_property('experiment_file', self._script)
-
-        self.steps = []
-        self.add_step('build', self.build)
-        self.add_step('run', self.start_runs)
-        self.add_fetcher(name='fetch')
 
     @property
     def name(self):
@@ -396,12 +408,14 @@ class Experiment(_Buildable):
     def add_step(self, name, function=None, *args, **kwargs):
         """Add a step to the list of experiment steps.
 
-        Use this method to add **custom** experiment steps like removing
-        directories and publishing results. To add fetch and report
-        steps, use the convenience methods :meth:`.add_fetcher` and
-        :meth:`.add_report`.
+        Use this method to add experiment steps like writing the
+        experiment file to disk, removing directories and publishing
+        results. To add fetch and report steps, use the convenience
+        methods :meth:`.add_fetcher` and :meth:`.add_report`.
 
-        *name* is a descriptive name for the step.
+        *name* is a descriptive name for the step. It must start with a
+        letter and consist of letters, numbers, underscores, hyphens and
+        dots.
 
         *function* must be a callable Python object, e.g., a function
         or a class implementing `__call__`. We allow function to be
@@ -414,22 +428,16 @@ class Experiment(_Buildable):
         >>> import subprocess
         >>> from lab.experiment import Experiment
         >>> exp = Experiment('/tmp/myexp')
+        >>> exp.add_step('build', exp.build)
+        >>> exp.add_step('start', exp.start_runs)
         >>> exp.add_step('rm-eval-dir', shutil.rmtree, exp.eval_dir)
         >>> exp.add_step('greet', subprocess.call, ['echo', 'Hello'])
 
         """
-        # Backwards compatibility.
-        if isinstance(name, Step):
-            tools.show_deprecation_warning(
-                'Passing a Step object to add_step() has been deprecated. '
-                'Please see the documentation of add_step().')
-            if function or args or kwargs:
-                raise ValueError(
-                    'When passing a Step object to add_step(), no other '
-                    'parameters must be given.')
-            self.steps.append(name)
-        else:
-            self.steps.append(Step(name, function, *args, **kwargs))
+        _check_name(name, "Step", extra_chars='_-.')
+        if any(step.name == name for step in self.steps):
+            raise ValueError("Step names must be unique: {}".format(name))
+        self.steps.append(Step(name, function, *args, **kwargs))
 
     def add_parser(self, name, path_to_parser):
         """
@@ -444,15 +452,19 @@ class Experiment(_Buildable):
 
         *name* must be a unique string that identifies the parser. The
         same rules as for all resources apply: it must start with a
-        letter and may only contain letters, numbers, or underscores.
+        letter and may only contain letters, numbers and underscores.
 
         *path_to_parser* must be the path to an executable file that can
         be executed in the run directory. For information about how to
         write parsers see :ref:`parsing`.
 
+        You can add the built-in "driver parser" to parse returncodes,
+        wall-clock times and unexplained errors of all commands::
+
+        >>> exp = Experiment()
+        >>> exp.add_parser('lab_driver_parser', exp.LAB_DRIVER_PARSER)
+
         """
-        if not name:
-            logging.critical('Parser names cannot be empty.')
         self._check_alias(name)
         if not os.path.isfile(path_to_parser):
             logging.critical('Parser %s could not be found.' % path_to_parser)
@@ -630,11 +642,9 @@ class Experiment(_Buildable):
         needed for the experiment to disk.
 
         If *write_to_disk* is False, only compute the internal data
-        structures. This is only needed internally for
-        FastDownwardExperiments on grids, where build() turns the added
-        algorithms and benchmarks into Runs.
-
-        By default, the first experiment step calls this method.
+        structures. This is only needed on grids for
+        FastDownwardExperiments.build() which turns the added algorithms
+        and benchmarks into Runs.
 
         """
         if not write_to_disk:
@@ -654,9 +664,7 @@ class Experiment(_Buildable):
         """Execute all runs that were added to the experiment.
 
         Depending on the selected environment this method will start
-        the runs locally or on a computer cluster.
-
-        By default, the second experiment step calls this method.
+        the runs locally or on a computer grid.
 
         """
         self.environment.start_runs()
@@ -688,8 +696,7 @@ class Run(_Buildable):
     """
     def __init__(self, experiment):
         """
-        *experiment* is a lab :py:class:`Experiment
-        <lab.experiment.Experiment>` object.
+        *experiment* must be an :class:`~lab.experiment.Experiment` instance.
         """
         _Buildable.__init__(self)
         self.experiment = experiment

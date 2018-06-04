@@ -8,9 +8,12 @@
 
 .. autoclass:: Experiment
    :members:
+   :exclude-members: LAB_DRIVER_PARSER
    :undoc-members:
    :inherited-members:
-   :noindex: LAB_DRIVER_PARSER
+
+.. autoattribute:: lab.experiment.Experiment.LAB_DRIVER_PARSER
+   :annotation:
 
 .. data:: ARGPARSER
 
