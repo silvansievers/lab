@@ -339,7 +339,7 @@ class SlurmEnvironment(GridEnvironment):
         job_params['qos'] = self.qos
         job_params['memory_per_cpu'] = self.memory_per_cpu
         # Ensure that single-core tasks always run before multi-core tasks.
-        job_params['nice'] = 0 if is_run_step(step) else 0
+        job_params['nice'] = 2000 if is_run_step(step) else 0
         job_params['environment_setup'] = self.ENVIRONMENT_SETUP
 
         if is_last and self.email:
