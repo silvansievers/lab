@@ -174,8 +174,9 @@ class GridEnvironment(Environment):
         commandline = list(reversed(sys.argv[1:]))
         if '--all' in commandline:
             commandline.remove('--all')
-        for step_name in self.exp.args.steps:
-            commandline.remove(step_name)
+        for step in self.exp.steps:
+            if step.name in commandline:
+                commandline.remove(step.name)
         return list(reversed(commandline))
 
     def _get_job_name(self, step):
