@@ -39,7 +39,7 @@ def _get_planner_exitcode(props):
     return exitcode
 
 
-def get_search_error(content, props):
+def parse_exit_code(content, props):
     """
     Convert the exitcode of the planner to a human-readable message and store
     it in props['error']. Additionally, if there was an unexplained error, add
@@ -51,30 +51,34 @@ def get_search_error(content, props):
     """
     assert 'error' not in props
 
+    # Check if Fast Downward uses the latest exit codes.
+    use_legacy_exit_codes = True
+    for line in content.splitlines():
+        if (line.startswith('translate exit code:') or
+                line.startswith('search exit code:')):
+            use_legacy_exit_codes = False
+            break
+
     exitcode = _get_planner_exitcode(props)
-    outcome = outcomes.get_outcome(exitcode)
+    outcome = outcomes.get_outcome(exitcode, use_legacy_exit_codes)
     props['error'] = outcome.msg
+    if use_legacy_exit_codes:
+        props['unsolvable'] = int(outcome.msg == 'unsolvable')
+        props['unsolvable_incomplete'] = int(
+            outcome.msg == 'incomplete-search-found-no-plan')
+    else:
+        props['unsolvable'] = int(
+            outcome.msg in ['translate-unsolvable', 'search-unsolvable'])
+        props['unsolvable_incomplete'] = int(
+            outcome.msg == 'search-unsolvable-incomplete')
     if not outcome.explained:
         props.add_unexplained_error(outcome.msg)
-
-
-def unsolvable(content, props):
-    outcome = outcomes.get_outcome(_get_planner_exitcode(props))
-    props['unsolvable'] = int(outcome and outcome.msg == 'unsolvable')
-
-
-def unsolvable_incomplete(content, props):
-    outcome = outcomes.get_outcome(props['fast-downward_returncode'])
-    props['unsolvable_incomplete'] = int(
-        outcome and outcome.msg == 'incomplete-search-found-no-plan')
 
 
 class ExitCodeParser(Parser):
     def __init__(self):
         Parser.__init__(self)
-        self.add_function(get_search_error)
-        self.add_function(unsolvable)
-        self.add_function(unsolvable_incomplete)
+        self.add_function(parse_exit_code)
 
 
 def main():
