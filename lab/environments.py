@@ -375,9 +375,7 @@ class BaselSlurmEnvironment(SlurmEnvironment):
     # (see http://issues.fast-downward.org/issue733).
     DEFAULT_MEMORY_PER_CPU = '3872M'
 
-    ENVIRONMENT_SETUP = (
-        'module load Python/2.7.11-goolf-1.7.20\n'
-        'PYTHONPATH="%s:$PYTHONPATH"' % tools.get_lab_path())
+    ENVIRONMENT_SETUP = ""
 
 
 class LapktSlurmEnvironment(SlurmEnvironment):
