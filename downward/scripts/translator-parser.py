@@ -1,7 +1,7 @@
 #! /usr/bin/env python2
 # -*- coding: utf-8 -*-
 #
-# downward uses the lab package to conduct experiments with the
+# Downward Lab uses the Lab package to conduct experiments with the
 # Fast Downward planning system.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -44,7 +44,8 @@ def parse_translator_timestamps(content, props):
             section = match.group(1).lower().replace(' ', '_')
             props['translator_time_' + section] = float(match.group(3))
         if line.startswith('Done!'):
-            break
+            return
+    assert False
 
 
 def parse_statistics(content, props):
@@ -59,8 +60,9 @@ def parse_statistics(content, props):
             attr = match.group(1).lower().replace(' ', '_')
             # Support strings, numbers, tuples, lists, dicts, booleans, and None.
             props['translator_{}'.format(attr)] = ast.literal_eval(match.group(2))
-        if line.startswith('done'):
-            break
+        if line.startswith('Done!'):
+            return
+    assert False
 
 
 class TranslatorParser(Parser):
@@ -88,7 +90,8 @@ class TranslatorParser(Parser):
                 'effect conditions simplified', 'implied preconditions added',
                 'operators removed', 'axioms removed', 'propositions removed']:
             attribute = 'translator_' + value.lower().replace(' ', '_')
-            self.add_pattern(attribute, '^(.+) {}$'.format(value), type=int)
+            self.add_pattern(
+                attribute, '^(.+) {}$'.format(value), type=int, required=False)
 
 
 if __name__ == '__main__':

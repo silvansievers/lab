@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# lab is a Python API for running and evaluating algorithms.
+# Lab is a Python package for evaluating algorithms.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ from lab.steps import Step, get_step, get_steps_text
 SHARD_SIZE = 100
 
 # Make argparser available globally so users can add custom arguments.
-ARGPARSER = tools.get_parser()
+ARGPARSER = tools.get_argument_parser()
 ARGPARSER.epilog = "The list of available steps will be added later."
 steps_group = ARGPARSER.add_mutually_exclusive_group()
 steps_group.add_argument(
@@ -44,10 +44,8 @@ steps_group.add_argument(
     '--all', dest='run_all_steps', action='store_true',
     help='Run all steps.')
 
-DIR = os.path.dirname(os.path.abspath(__file__))
-LAB_SCRIPTS_DIR = os.path.join(DIR, 'scripts')
 STATIC_EXPERIMENT_PROPERTIES_FILENAME = 'static-experiment-properties'
-STATIC_RUN_PROPERTIES_FILENAME = 'static-run-properties'
+STATIC_RUN_PROPERTIES_FILENAME = 'static-properties'
 
 
 def get_default_data_dir():
@@ -84,9 +82,12 @@ def _check_name(name, typ, extra_chars=''):
     alpha_num_name = name
     for c in extra_chars:
         alpha_num_name = alpha_num_name.replace(c, '')
-    if not (name[0].isalpha() and alpha_num_name.isalnum()):
+    if not name[0].isalpha():
         logging.critical(
-            'Name for {typ} must start with a letter and may use characters from'
+            'Name for {typ} must start with a letter.'.format(**locals()))
+    if not alpha_num_name.isalnum():
+        logging.critical(
+            'Name for {typ} may only use characters from'
             ' [A-Z], [a-z], [0-9], [{extra_chars}]: {name}'.format(**locals()))
 
 
@@ -346,21 +347,6 @@ class Experiment(_Buildable):
 
     """
 
-    #: Parser that copies returncodes, wall-clock times and
-    #: unexplained errors from "driver-properties" to "properties".
-    #:
-    #: Parsed attributes: "unexplained_errors", "\*_returncode", "\*_wall_clock_time"
-    LAB_DRIVER_PARSER = os.path.join(
-        LAB_SCRIPTS_DIR, 'driver-properties-parser.py')
-
-    #: Parser that copies "static-run-properties" to "properties".
-    #:
-    #: Parsed Lab attributes: "id", "run_dir"
-    #:
-    #: Parsed Downward attributes: "algorithm", "domain", "problem", etc.
-    LAB_STATIC_PROPERTIES_PARSER = os.path.join(
-        LAB_SCRIPTS_DIR, 'static-properties-parser.py')
-
     def __init__(self, path=None, environment=None):
         """
         The experiment will be built at *path*. It defaults to
@@ -378,6 +364,8 @@ class Experiment(_Buildable):
         :ref:`Environment <environments>`.
 
         """
+        tools.configure_logging(ARGPARSER.parse_args().log_level)
+
         _Buildable.__init__(self)
         path = path or _get_default_experiment_dir()
         self.path = os.path.abspath(path)
@@ -419,9 +407,9 @@ class Experiment(_Buildable):
         results. To add fetch and report steps, use the convenience
         methods :meth:`.add_fetcher` and :meth:`.add_report`.
 
-        *name* is a descriptive name for the step. It must start with a
-        letter and consist of letters, numbers, underscores, hyphens and
-        dots.
+        *name* is a descriptive name for the step. When selecting steps
+        on the command line, you may either use step names or their
+        indices.
 
         *function* must be a callable Python object, e.g., a function
         or a class implementing `__call__`.
@@ -439,7 +427,10 @@ class Experiment(_Buildable):
         >>> exp.add_step('greet', subprocess.call, ['echo', 'Hello'])
 
         """
-        _check_name(name, "Step", extra_chars='_-.')
+        if not isinstance(name, basestring):
+            logging.critical('Step name must be a string: {}'.format(name))
+        if not name:
+            logging.critical('Step name must not be empty')
         if any(step.name == name for step in self.steps):
             raise ValueError("Step names must be unique: {}".format(name))
         self.steps.append(Step(name, function, *args, **kwargs))
@@ -465,16 +456,6 @@ class Experiment(_Buildable):
         automatically).
 
         For information about how to write parsers see :ref:`parsing`.
-
-        Two built-in parsers are useful for most experiments:
-        :attr:`.LAB_STATIC_PROPERTIES_PARSER` copies static information
-        into the "properties" file and :attr:`.LAB_DRIVER_PARSER` copies
-        returncodes, wall-clock times and unexplained errors of all
-        commands into "properties"::
-
-        >>> exp = Experiment()
-        >>> exp.add_parser(exp.LAB_STATIC_PROPERTIES_PARSER)
-        >>> exp.add_parser(exp.LAB_DRIVER_PARSER)
 
         """
         name, _ = os.path.splitext(os.path.basename(path_to_parser))
@@ -770,10 +751,7 @@ class Run(_Buildable):
             parts = [cmd_string]
             if kwargs_string:
                 parts.append(kwargs_string)
-            call = ('retcode = call.Call({}, **redirects).wait()\n'
-                    'log.save_returncode({name!r}, retcode)\n'.format(
-                        ', '.join(parts), **locals()))
-            return call
+            return ('Call({}, **redirects).wait()\n'.format(', '.join(parts)))
 
         calls_text = '\n'.join(
             make_call(name, cmd, kwargs)

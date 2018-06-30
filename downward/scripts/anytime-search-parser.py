@@ -1,7 +1,7 @@
 #! /usr/bin/env python2
 # -*- coding: utf-8 -*-
 #
-# downward uses the lab package to conduct experiments with the
+# Downward Lab uses the Lab package to conduct experiments with the
 # Fast Downward planning system.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,10 +18,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Parse cost, coverage and plan_length attributes for Fast Downward runs.
+Parse anytime-search runs of Fast Downward. This includes iterated
+searches and portfolios.
 """
-
-from __future__ import division
 
 import re
 
@@ -53,9 +52,7 @@ def reduce_to_min(list_name, single_name):
     def reduce_to_minimum(content, props):
         values = props.get(list_name, [])
         if values:
-            min_value = min(values)
-            assert min_value == values[-1]
-            props[single_name] = min_value
+            props[single_name] = min(values)
 
     return reduce_to_minimum
 

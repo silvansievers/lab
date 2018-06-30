@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# downward uses the lab package to conduct experiments with the
+# Downward Lab uses the Lab package to conduct experiments with the
 # Fast Downward planning system.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -204,8 +204,7 @@ class PlanningReport(Report):
         each run where an unexplained error occured.
         """
         columns = [
-            'domain', 'problem', 'algorithm', 'unexplained_errors', 'error',
-            'fast-downward_wall_clock_time', 'raw_memory', 'node']
+            'domain', 'problem', 'algorithm', 'unexplained_errors', 'error']
         table = reports.Table(title='Unexplained errors')
         table.set_column_order(columns)
 
@@ -243,8 +242,6 @@ class PlanningReport(Report):
                 'There was output to {slurm_err_file}.'.format(**locals()))
 
             text = (
-                'There was output to slurm.err.'
-                ' Please inspect the relevant *-grid-steps/slurm.err file(s).'
                 ' Contents of {slurm_err_file} without "memory cg"'
                 ' errors:\n```\n{slurm_err_content}\n```'.format(**locals()))
 

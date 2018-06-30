@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# lab is a Python API for running and evaluating algorithms.
+# Lab is a Python package for evaluating algorithms.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ import logging
 import os
 import sys
 
+import lab.experiment
 from lab import tools
 
 
@@ -54,8 +55,29 @@ class Fetcher(object):
 
     """
     def fetch_dir(self, run_dir):
-        prop_file = os.path.join(run_dir, 'properties')
-        return tools.Properties(filename=prop_file)
+        static_props = tools.Properties(
+            filename=os.path.join(run_dir, lab.experiment.STATIC_RUN_PROPERTIES_FILENAME))
+        dynamic_props = tools.Properties(filename=os.path.join(run_dir, 'properties'))
+
+        props = tools.Properties()
+        props.update(static_props)
+        props.update(dynamic_props)
+
+        driver_log = os.path.join(run_dir, 'driver.log')
+        if not os.path.exists(driver_log):
+            props.add_unexplained_error(
+                'driver.log is missing. Probably the run was never started.')
+
+        driver_err = os.path.join(run_dir, 'driver.err')
+        run_err = os.path.join(run_dir, 'run.err')
+        for logfile in [driver_err, run_err]:
+            if os.path.exists(logfile):
+                with open(logfile) as f:
+                    content = f.read()
+                if content:
+                    props.add_unexplained_error(
+                        '{}: {}'.format(os.path.basename(logfile), content))
+        return props
 
     def __call__(self, src_dir, eval_dir=None, merge=None, filter=None,
                  **kwargs):
@@ -119,13 +141,7 @@ class Fetcher(object):
                 props = self.fetch_dir(run_dir)
                 if slurm_err_content:
                     props.add_unexplained_error('output-to-slurm.err')
-                try:
-                    id_string = '-'.join(props['id'])
-                except KeyError:
-                    logging.critical(
-                        'Properties need an "id" entry: {}. Did you forget to call'
-                        ' exp.add_parser(exp.LAB_STATIC_PROPERTIES_PARSER)?'.format(
-                            props))
+                id_string = '-'.join(props['id'])
                 new_props[id_string] = props
             run_filter.apply(new_props)
             combined_props.update(new_props)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# downward uses the lab package to conduct experiments with the
+# Downward Lab uses the Lab package to conduct experiments with the
 # Fast Downward planning system.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -50,7 +50,7 @@ class FastDownwardRun(Run):
             'problem', self.task.problem_file, 'problem.pddl', symlink=True)
 
         self.add_command(
-            'fast-downward',
+            'planner',
             ['{' + algo.cached_revision.get_planner_resource_name() + '}'] +
             algo.driver_options + ['{domain}', '{problem}'] + algo.component_options)
 
@@ -102,23 +102,28 @@ class FastDownwardExperiment(Experiment):
 
     # Built-in parsers that can be passed to exp.add_parser().
 
-    #: Needed attributes: fast-downward_returncode
-    #:
-    #: Parsed attributes: "error", "unsolvable"
+    #: Parsed attributes: "error", "planner_exit_code", "unsolvable".
     EXITCODE_PARSER = os.path.join(
         DOWNWARD_SCRIPTS_DIR, 'exitcode-parser.py')
 
-    #: Parsed attributes: "translator_variables", "translator_time_done", etc.
+    #: Parsed attributes: "translator_peak_memory", "translator_time_done", etc.
     TRANSLATOR_PARSER = os.path.join(
         DOWNWARD_SCRIPTS_DIR, 'translator-parser.py')
 
-    #: Parsed attributes: "coverage", "expansions_until_last_jump", "total_time", etc.
+    #: Parsed attributes: "coverage", "memory", "total_time", etc.
     SINGLE_SEARCH_PARSER = os.path.join(
         DOWNWARD_SCRIPTS_DIR, 'single-search-parser.py')
 
-    #: Parsed attributes: "cost", "cost:all", "coverage"
+    #: Parsed attributes: "cost", "cost:all", "coverage".
     ANYTIME_SEARCH_PARSER = os.path.join(
         DOWNWARD_SCRIPTS_DIR, 'anytime-search-parser.py')
+
+    #: Required attributes: "memory", "total_time",
+    #: "translator_peak_memory", "translator_time_done".
+    #:
+    #: Parsed attributes: "planner_memory", "planner_time".
+    PLANNER_PARSER = os.path.join(
+        DOWNWARD_SCRIPTS_DIR, 'planner-parser.py')
 
     def __init__(self, path=None, environment=None, revision_cache=None):
         """
@@ -134,19 +139,17 @@ class FastDownwardExperiment(Experiment):
         >>> env = BaselSlurmEnvironment(email="my.name@unibas.ch")
         >>> exp = FastDownwardExperiment(environment=env)
 
-        You can add parsers with :meth:`.add_parser()`. Three parsers
-        are required and have to be added in the following order:
+        You can add parsers with :meth:`.add_parser()`. See
+        :ref:`parsing` for how to write custom parsers and
+        :ref:`downward-parsers` for the list of built-in parsers. Which
+        parsers you should use depends on the algorithms you're running.
+        For single-search experiments, we recommend adding the following
+        parsers in this order:
 
-        >>> exp.add_parser(exp.LAB_STATIC_PROPERTIES_PARSER)
-        >>> exp.add_parser(exp.LAB_DRIVER_PARSER)
         >>> exp.add_parser(exp.EXITCODE_PARSER)
-
-        You can add other parsers depending on the algorithms you're
-        running:
-
         >>> exp.add_parser(exp.TRANSLATOR_PARSER)
         >>> exp.add_parser(exp.SINGLE_SEARCH_PARSER)
-        >>> exp.add_parser(exp.ANYTIME_SEARCH_PARSER)
+        >>> exp.add_parser(exp.PLANNER_PARSER)
 
         """
         Experiment.__init__(self, path=path, environment=environment)
@@ -182,7 +185,7 @@ class FastDownwardExperiment(Experiment):
         http://bitbucket.org/aibasel/downward-benchmarks. After cloning
         the repo, you can generate suites with the ``suites.py``
         script. We recommend using the suite ``optimal_strips`` for
-        optimal planning and ``satisficing`` for satisifing planning::
+        optimal planning and ``satisficing`` for satisficing planning::
 
             # Create standard optimal planning suite.
             $ path/to/downward-benchmarks/suites.py optimal_strips

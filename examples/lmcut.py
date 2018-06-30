@@ -21,7 +21,7 @@ if NODE.endswith(".scicore.unibas.ch") or NODE.endswith(".cluster.bc2.ch"):
     SUITE = ['depot', 'freecell', 'gripper', 'zenotravel']
     ENV = BaselSlurmEnvironment(email="my.name@unibas.ch")
 else:
-    SUITE = ['depot:p01.pddl', 'gripper:prob01.pddl']
+    SUITE = ['depot:p01.pddl', 'gripper:prob01.pddl', 'mystery:prob07.pddl']
     ENV = LocalEnvironment(processes=2)
 # Use path to your Fast Downward repository.
 REPO = os.environ["DOWNWARD_REPO"]
@@ -31,11 +31,10 @@ REVISION_CACHE = os.path.expanduser('~/lab/revision-cache')
 exp = FastDownwardExperiment(environment=ENV, revision_cache=REVISION_CACHE)
 
 # Add built-in parsers to the experiment.
-exp.add_parser(exp.LAB_STATIC_PROPERTIES_PARSER)
-exp.add_parser(exp.LAB_DRIVER_PARSER)
 exp.add_parser(exp.EXITCODE_PARSER)
 exp.add_parser(exp.TRANSLATOR_PARSER)
 exp.add_parser(exp.SINGLE_SEARCH_PARSER)
+exp.add_parser(exp.PLANNER_PARSER)
 
 exp.add_suite(BENCHMARKS_DIR, SUITE)
 exp.add_algorithm(

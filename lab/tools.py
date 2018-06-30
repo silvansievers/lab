@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# lab is a Python API for running and evaluating algorithms.
+# Lab is a Python package for evaluating algorithms.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,9 +40,6 @@ except ImportError:
     import json
 
 
-_LOG_LEVEL = None
-
-
 def get_script_path():
     """Get absolute path to main script."""
     return os.path.abspath(sys.argv[0])
@@ -52,17 +49,7 @@ def get_lab_path():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-class ErrorAbortHandler(logging.StreamHandler):
-    """
-    Custom logging Handler that exits when a critical error is encountered.
-    """
-    def emit(self, record):
-        logging.StreamHandler.emit(self, record)
-        if record.levelno >= logging.CRITICAL:
-            sys.exit('aborting')
-
-
-def setup_logging(level):
+def configure_logging(level=logging.INFO):
     # Python adds a default handler if some log is written before this
     # function is called. We therefore remove all handlers that have
     # been added automatically.
@@ -70,15 +57,35 @@ def setup_logging(level):
     for handler in root_logger.handlers:
         root_logger.removeHandler(handler)
 
-    # Handler which writes _LOG_LEVEL messages or higher to stdout
-    console = ErrorAbortHandler(sys.stdout)
-    # set a format which is simpler for console use
-    format = '%(asctime)-s %(levelname)-8s %(message)s'
-    formatter = logging.Formatter(format)
-    # tell the handler to use this format
-    console.setFormatter(formatter)
-    # add the handler to the root logger
-    root_logger.addHandler(console)
+    class ErrorAbortHandler(logging.StreamHandler):
+        """
+        Logging handler that exits when a critical error is encountered.
+        """
+        def emit(self, record):
+            logging.StreamHandler.emit(self, record)
+            if record.levelno >= logging.CRITICAL:
+                sys.exit('aborting')
+
+    class StdoutFilter(logging.Filter):
+        def filter(self, record):
+            return record.levelno <= logging.WARNING
+
+    class StderrFilter(logging.Filter):
+        def filter(self, record):
+            return record.levelno > logging.WARNING
+
+    formatter = logging.Formatter('%(asctime)-s %(levelname)-8s %(message)s')
+
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(formatter)
+    stdout_handler.addFilter(StdoutFilter())
+
+    stderr_handler = ErrorAbortHandler(sys.stderr)
+    stderr_handler.setFormatter(formatter)
+    stderr_handler.addFilter(StderrFilter())
+
+    root_logger.addHandler(stdout_handler)
+    root_logger.addHandler(stderr_handler)
     root_logger.setLevel(level)
 
 
@@ -437,19 +444,11 @@ def get_terminal_size():
 def get_unexplained_errors_message(run):
     """
     Return an error message if an unexplained error occured in the given run,
-    otherwise return None. Also, add an unexplained error to the run if
-    run['error'] is missing.
+    otherwise return None.
     """
-    if 'error' not in run:
-        add_unexplained_error(run, 'attribute-error-missing')
-
     unexplained_errors = run.get('unexplained_errors', [])
     if not unexplained_errors or unexplained_errors == ['output-to-slurm.err']:
         return ''
-    elif unexplained_errors == ['attribute-error-missing']:
-        return (
-            'Attribute "error" is missing. Have you added the required parsers?'
-            ' See documentation and "examples" directory.')
     else:
         return (
             'Unexplained error(s): {unexplained_errors}. Please inspect'
@@ -493,31 +492,16 @@ class RawAndDefaultsHelpFormatter(argparse.HelpFormatter):
         return help
 
 
-def get_parser(add_log_option=True, **kwargs):
-    kwargs.setdefault('formatter_class', RawAndDefaultsHelpFormatter)
-    parser = argparse.ArgumentParser(**kwargs)
-    if add_log_option:
-        parser.add_argument(
-            '-l', '--log-level',
-            dest='log_level',
-            choices=['DEBUG', 'INFO', 'WARNING'],
-            default='INFO',
-            help='Logging verbosity')
+def get_argument_parser():
+    def log_level(s):
+        return getattr(logging, s.upper())
+
+    parser = argparse.ArgumentParser(formatter_class=RawAndDefaultsHelpFormatter)
+    parser.add_argument(
+        '-l', '--log-level',
+        type=log_level,
+        dest='log_level',
+        choices=['DEBUG', 'INFO', 'WARNING'],
+        default='INFO',
+        help='Logging verbosity')
     return parser
-
-
-def parse_and_set_log_level():
-    # Set log level only once.
-    global _LOG_LEVEL
-    if _LOG_LEVEL:
-        return
-
-    parser = get_parser(add_help=False)
-    args, _ = parser.parse_known_args()
-
-    if getattr(args, 'log_level', None):
-        _LOG_LEVEL = getattr(logging, args.log_level.upper())
-        setup_logging(_LOG_LEVEL)
-
-
-parse_and_set_log_level()
