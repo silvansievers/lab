@@ -89,6 +89,7 @@ class Problem(object):
                 self.problem[:3] + '-domain.pddl',
                 'domain-' + self.problem,
                 'domain_' + self.problem,
+                'domain-' + self.problem,
             ]
             domain_dir = os.path.join(benchmarks_dir, self.domain)
             self.domain_file = tools.find_file(domain_basenames, domain_dir)

@@ -124,11 +124,7 @@ class Fetcher(object):
                 slurm_err_content = ''
 
             if slurm_err_content:
-                filtered = tools.filter_slurm_err_content(slurm_err_content)
-                logging.error(
-                    'Slurm error log without "memory cg" errors:\n'
-                    '{sep}\n{filtered}\n{sep}'.format(
-                        sep='*' * 72, **locals()))
+                logging.error('There was ouput to *-grid-steps/slurm.err')
 
             new_props = tools.Properties()
             run_dirs = sorted(glob(os.path.join(src_dir, 'runs-*-*', '*')))
