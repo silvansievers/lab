@@ -220,22 +220,7 @@ class PlanningReport(Report):
                 #logging.error(error_message)
                 num_unexplained_errors += 1
                 for column in columns:
-                    if column == "unexplained_errors":
-                        errors = run.get(column, '?')
-                        if isinstance(errors, list):
-                            result = []
-                            for error in errors:
-                                if error.startswith('run.err'):
-                                    result.append('run.err')
-                                else:
-                                    result.append(error)
-                            errors = result
-                        elif isinstance(errors, str):
-                            if errors.startswith('run.err'):
-                                errors = 'run.err'
-                        table.add_cell(run['run_dir'], column, errors)
-                    else:
-                        table.add_cell(run['run_dir'], column, run.get(column, '?'))
+                    table.add_cell(run['run_dir'], column, run.get(column, '?'))
 
         if num_unexplained_errors:
             logging.error(
