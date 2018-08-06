@@ -226,7 +226,7 @@ class PlanningReport(Report):
                             result = []
                             for error in errors:
                                 if error.startswith('run.err'):
-                                    result.error('run.err')
+                                    result.append('run.err')
                                 else:
                                     result.append(error)
                             errors = result
