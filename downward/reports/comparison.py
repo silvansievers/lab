@@ -271,7 +271,7 @@ class ComparisonReport(AbsoluteReport):
                 algo2_value = algo2_run.get(attribute)
                 try:
                     diff = float(algo2_value) - float(algo1_value)
-                except (ValueError, TypeError, KeyError):
+                except (ValueError, TypeError, KeyError, OverflowError):
                     diff = None
                 better = 0
                 worse = 0
