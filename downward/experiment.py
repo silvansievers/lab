@@ -98,6 +98,12 @@ class FastDownwardExperiment(Experiment):
         >>> exp.add_step('start', exp.start_runs)
         >>> exp.add_fetcher(name='fetch')
 
+    .. note::
+
+        By default, "output.sas" translator output files are deleted
+        after the driver exits. To keep these files use ``del
+        exp.commands['remove-output-sas']`` in your experiment script.
+
     """
 
     # Built-in parsers that can be passed to exp.add_parser().
@@ -121,7 +127,7 @@ class FastDownwardExperiment(Experiment):
     #: Required attributes: "memory", "total_time",
     #: "translator_peak_memory", "translator_time_done".
     #:
-    #: Parsed attributes: "planner_memory", "planner_time".
+    #: Parsed attributes: "planner_memory", "planner_time", "planner_wall_clock_time".
     PLANNER_PARSER = os.path.join(
         DOWNWARD_SCRIPTS_DIR, 'planner-parser.py')
 
