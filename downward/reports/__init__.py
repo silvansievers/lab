@@ -225,6 +225,8 @@ class PlanningReport(Report):
             if error_message:
                 # logging.error(error_message)
                 num_unexplained_errors += 1
+                # Silvan: comment the following two lines out to get rid of
+                # the plain error output in unexplained errors
                 for column in columns:
                     table.add_cell(run['run_dir'], column, run.get(column, '?'))
 
