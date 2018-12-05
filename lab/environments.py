@@ -427,6 +427,4 @@ class LapktSlurmEnvironment(SlurmEnvironment):
     # infai nodes have 61964 MiB and 16 cores => 3872.75 MiB per core
     # (see http://issues.fast-downward.org/issue733).
     DEFAULT_MEMORY_PER_CPU = '3872M'
-    DEFAULT_SETUP = 'module load Python/2.7.11-goolf-1.7.20\n' +\
-        'PYTHONPATH="{}:$PYTHONPATH"\n'.format(tools.get_lab_path()) +\
-        'LMOD_DISABLE_SAME_NAME_AUTOSWAP="no" module load GCC/5.4.0-2.26'
+    DEFAULT_SETUP = 'LMOD_DISABLE_SAME_NAME_AUTOSWAP="no" module load GCC/5.4.0-2.26'
