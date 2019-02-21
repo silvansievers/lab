@@ -28,7 +28,7 @@ import logging
 
 from lab import reports
 from lab import tools
-from lab.reports import Attribute, Report, geometric_mean, arithmetic_mean
+from lab.reports import Attribute, Report, geometric_mean
 
 
 class PlanningReport(Report):
