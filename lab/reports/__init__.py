@@ -19,8 +19,6 @@
 Module that permits generating reports by reading properties files
 """
 
-from __future__ import with_statement, division
-
 import collections
 from collections import defaultdict
 import fnmatch
@@ -68,7 +66,7 @@ def finite_sum(values):
     """
     if len(values) == 0:
         return 0
-    return sum([x for x in values if x is not None and x != sys.maxint])
+    return sum([x for x in values if x is not None and x != sys.maxsize])
 
 
 def percentile_50(values):
@@ -93,7 +91,6 @@ def percentile_95(values):
     if len(values) == 0:
         return 0
     return numpy.percentile(values, 95)
-
 
 def function_name(f):
     names = {
@@ -410,7 +407,7 @@ class Report(object):
         logging.info('Wrote file://%s' % self.outfile)
 
     def _get_type(self, attribute):
-        for run_id, run in self.props.iteritems():
+        for run_id, run in self.props.items():
             val = run.get(attribute)
             if val is not None:
                 return type(val)
@@ -487,7 +484,7 @@ class Table(collections.defaultdict):
         >>> t.add_row('prob2', {'cfg1': 15, 'cfg2': 25})
         >>> def remove_quotes(s):
         ...     return s.replace('""', '')
-        >>> print remove_quotes(str(t))
+        >>> print(remove_quotes(str(t)))
         || expansions |  cfg1 |  cfg2 |
          | prob1 |  10 |  20 |
          | prob2 |  15 |  25 |
@@ -500,13 +497,13 @@ class Table(collections.defaultdict):
         >>> t.get_columns() == {'cfg1': [10, 15], 'cfg2': [20, 25]}
         True
         >>> t.add_summary_function('SUM', sum)
-        >>> print remove_quotes(str(t))
+        >>> print(remove_quotes(str(t)))
         || expansions |  cfg1 |  cfg2 |
          | prob1 |  10 |  20 |
          | prob2 |  15 |  25 |
          | **SUM** |  25 |  45 |
         >>> t.set_column_order(['cfg2', 'cfg1'])
-        >>> print remove_quotes(str(t))
+        >>> print(remove_quotes(str(t)))
         || expansions |  cfg2 |  cfg1 |
          | prob1 |  20 |  10 |
          | prob2 |  25 |  15 |
@@ -676,7 +673,7 @@ class Table(collections.defaultdict):
         for col_name in self.col_names:
             cells[self.header_row][col_name] = str(col_name)
         # Add data rows and summary rows.
-        for row_name, row in self.items() + self.get_summary_rows().items():
+        for row_name, row in list(self.items()) + list(self.get_summary_rows().items()):
             cells[row_name][self.header_column] = str(row_name)
             for col_name in self.col_names:
                 cells[row_name][col_name] = row.get(col_name)
@@ -709,12 +706,15 @@ class Table(collections.defaultdict):
         row_slice = dict((col_name, row.get(col_name))
                          for col_name in self.col_names)
 
-        min_value, max_value = tools.get_min_max(row_slice.values())
-
         min_wins = self.get_min_wins(row_name)
         highlight = min_wins is not None
         colored = self.colored and highlight
         colors = tools.get_colors(row_slice, min_wins) if colored else None
+
+        if highlight:
+            min_value, max_value = tools.get_min_max(row_slice.values())
+        else:
+            min_value, max_value = None, None
 
         def is_close(a, b, rel_tol=1e-09, abs_tol=0.0):
             return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)

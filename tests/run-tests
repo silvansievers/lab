@@ -25,13 +25,14 @@ cd ..
 
 # Make Lab available on the PYTHONPATH.
 LAB=`realpath .`
-echo "Checking Lab at $LAB"
+PYTHON_VERSION="$(python --version 2>&1)"
+echo "Checking Lab at $LAB with $PYTHON_VERSION"
 export PYTHONPATH=${LAB}
 echo "Using PYTHONPATH: $PYTHONPATH"
 
 cleanup
 
-python2 -m py.test tests
+python -m pytest tests
 
 # Run doctests.
 cd lab
@@ -50,7 +51,7 @@ python -m pyflakes downward examples tests setup.py docs/conf.py
 ./tests/find-dead-code
 
 # Check code formatting.
-pycodestyle --max-line-length=90 --exclude=data,external lab downward examples setup.py
+python -m pycodestyle --max-line-length=90 --exclude=data,external lab downward examples setup.py
 
 # Check if documentation builds.
 cd docs
