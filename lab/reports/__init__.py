@@ -92,6 +92,7 @@ def percentile_95(values):
         return 0
     return numpy.percentile(values, 95)
 
+
 def function_name(f):
     names = {
         'arithmetic_mean': 'arithmetic mean',
