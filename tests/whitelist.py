@@ -2,7 +2,6 @@ import lab
 from lab.experiment import ARGPARSER
 from lab.calls.call import Call
 from lab import reports
-from downward.reports.comparison import ComparisonReport
 from lab.environments import LapktSlurmEnvironment
 
 ARGPARSER.epilog
@@ -17,5 +16,4 @@ lab.tools.deprecated
 
 Call
 
-ComparisonReport
 LapktSlurmEnvironment

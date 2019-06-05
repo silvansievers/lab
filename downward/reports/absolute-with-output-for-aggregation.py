@@ -125,7 +125,7 @@ class AbsoluteReport(PlanningReport):
         content = '\n'.join('= %s =[%s]\n\n%s' % (attr, attr, section)
                             for (attr, section) in sections)
 
-        print "from aggregation"
+        print("from aggregation")
         attribute_algo_values_from_aggregated = defaultdict(list)
         for (attribute, domain, algo) in sorted(self.attribute_domain_algo_values.keys()):
             # print '{}: {}'.format((attribute, domain, algo),
@@ -139,9 +139,9 @@ class AbsoluteReport(PlanningReport):
                 function = reports.geometric_mean
             else:
                 assert False
-            print '{}: {}'.format((attribute, algo), function(values))
+            print('{}: {}'.format((attribute, algo), function(values)))
 
-        print "direct"
+        print("direct")
         for (attribute, algo) in sorted(self.attribute_algo_values.keys()):
             if attribute == 'ms_construction_time':
                 function = reports.arithmetic_mean
@@ -149,8 +149,8 @@ class AbsoluteReport(PlanningReport):
                 function = reports.geometric_mean
             else:
                 assert False
-            print '{}: {}'.format((attribute, algo), function(
-                self.attribute_algo_values[attribute, algo]))
+            print('{}: {}'.format((attribute, algo), function(
+                self.attribute_algo_values[attribute, algo])))
         return '%s\n\n\n%s' % (toc, content)
 
     def _get_general_info(self):
