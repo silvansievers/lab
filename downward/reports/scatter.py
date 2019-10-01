@@ -249,6 +249,8 @@ class ScatterPlotReport(PlotReport):
         self.ylabel = self.ylabel or self.algorithms[1]
 
         suffix = '.' + self.output_format
+        # Silvan: this can be a somewhat surprising fact if one tries to figure
+        # out why the given outfile is changed.
         if not self.outfile.endswith(suffix):
             self.outfile += suffix
         tools.makedirs(os.path.dirname(self.outfile))
