@@ -1,0 +1,7 @@
+#! /bin/bash
+
+# Test setup: see bitbucket-pipelines.yml
+
+set -exuo pipefail
+
+python -m flake8 --extend-ignore E125 --exclude=build,data,external,conf.py,.tox,.hg --max-line-length=90

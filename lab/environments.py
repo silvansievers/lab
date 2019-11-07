@@ -109,7 +109,8 @@ class LocalEnvironment(Environment):
         self.exp.add_new_file('', self.EXP_RUN_SCRIPT, script, permissions=0o755)
 
     def start_runs(self):
-        tools.run_command([sys.executable, self.EXP_RUN_SCRIPT], cwd=self.exp.path)
+        tools.run_command(
+            [tools.get_python_executable(), self.EXP_RUN_SCRIPT], cwd=self.exp.path)
 
     def run_steps(self, steps):
         for step in steps:
@@ -200,13 +201,14 @@ class GridEnvironment(Environment):
         return tools.fill_template(
             self.RUN_JOB_BODY_TEMPLATE_FILE,
             task_order=' '.join(str(i) for i in self._get_task_order()),
-            exp_path='../' + self.exp.name)
+            exp_path='../' + self.exp.name,
+            python=tools.get_python_executable())
 
     def _get_step_job_body(self, step):
         return tools.fill_template(
             self.STEP_JOB_BODY_TEMPLATE_FILE,
             cwd=os.getcwd(),
-            python=sys.executable or 'python',
+            python=tools.get_python_executable(),
             script=sys.argv[0],
             step_name=step.name)
 
@@ -345,7 +347,14 @@ class SlurmEnvironment(GridEnvironment):
         the **setup** argument. If given, it must be a string of Bash
         commands. If omitted,
         :class:`~lab.environments.BaselSlurmEnvironment` adds Lab to the
-        PYTHONPATH.
+        PYTHONPATH (this is unneeded if you run Lab inside a virtual
+        environment). Examples::
+
+            # Activate virtual environment on grid node.
+            setup="source /path/to/virtual-env/bin/activate"
+
+            # Load module.
+            setup="module load Singularity/2.6.1 2> /dev/null"
 
         See :py:class:`~lab.environments.GridEnvironment` for inherited
         parameters.
@@ -438,7 +447,7 @@ class BaselSlurmEnvironment(SlurmEnvironment):
     # (see http://issues.fast-downward.org/issue733).
     DEFAULT_MEMORY_PER_CPU = '3872M'
     DEFAULT_SETUP = (
-        'PYTHONPATH="%s:$PYTHONPATH"' % tools.get_lab_path())
+        'export PYTHONPATH="%s:$PYTHONPATH"' % tools.get_lab_path())
 
 
 class LapktSlurmEnvironment(SlurmEnvironment):

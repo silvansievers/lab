@@ -264,9 +264,9 @@ class _Buildable(object):
 
     @property
     def _env_vars(self):
-        return dict(
-            (name, self._get_abs_path(dest))
-            for name, dest in self.env_vars_relative.items())
+        return {
+            name: self._get_abs_path(dest)
+            for name, dest in self.env_vars_relative.items()}
 
     def _get_abs_path(self, rel_path):
         """Return absolute path by applying rel_path to the base dir."""
@@ -446,10 +446,10 @@ class Experiment(_Buildable):
         execute them again you can use the :meth:`.add_parse_again_step`
         method.
 
-        *path_to_parser* must be the path to an executable file. The
-        parser is executed in the run directory and manipulates the
-        run's "properties" file. The last part of the filename (without
-        the extension) is used as a resource name. Therefore, it must be
+        *path_to_parser* must be the path to a Python script. The script
+        is executed in the run directory and manipulates the run's
+        "properties" file. The last part of the filename (without the
+        extension) is used as a resource name. Therefore, it must be
         unique among all parsers and other resources. Also, it must
         start with a letter and contain only letters, numbers,
         underscores and dashes (which are converted to underscores
@@ -463,14 +463,12 @@ class Experiment(_Buildable):
         self._check_alias(name)
         if not os.path.isfile(path_to_parser):
             logging.critical('Parser %s could not be found.' % path_to_parser)
-        if not os.access(path_to_parser, os.X_OK):
-            logging.critical('Parser %s is not executable.' % path_to_parser)
 
         dest = os.path.basename(path_to_parser)
         self.env_vars_relative[name] = dest
         self.resources.append(_Resource(
             name, path_to_parser, dest, symlink=False, is_parser=True))
-        self.add_command(name, ["{{{}}}".format(name)])
+        self.add_command(name, [tools.get_python_executable(), "{{{}}}".format(name)])
 
     def add_parse_again_step(self):
         """

@@ -1,6 +1,41 @@
 News
 ====
 
+v4.3 (unreleased)
+-----------------
+
+Lab
+^^^
+
+Downward Lab
+^^^^^^^^^^^^
+* Scatter plots: simplify code by letting Matplotlib compute axis limits automatically.
+* Scatter plots: draw points for algorithm pairs with missing values on axis boundaries.
+* Scatter plots: allow drawing negative values on linear and symlog axes.
+* Scatter plots: fold PlotReport class into ScatterPlotReport.
+
+
+v4.2 (2019-09-27)
+-----------------
+
+Lab
+^^^
+* Upload to PyPI. Install Lab and Downward Lab with ``pip install lab``.
+* Add support for running Lab in Python virtual environments (Guillem).
+* Parser scripts don't have to be executable anymore, but they must be Python scripts.
+
+Downward Lab
+^^^^^^^^^^^^
+* Abort if two algorithms are identical, i.e., use the same revision, build config and commandline options.
+* Scatter plot report: include tasks for which both algorithms have no data if ``show_missing=True``.
+
+
+v4.1 (2019-06-03)
+-----------------
+
+* Add support for Python 3. Lab now supports Python 2.7 and Python >= 3.5.
+
+
 v4.0 (2019-02-19)
 -----------------
 

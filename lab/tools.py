@@ -85,6 +85,10 @@ def get_lab_path():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def get_python_executable():
+    return sys.executable or 'python'
+
+
 def configure_logging(level=logging.INFO):
     # Python adds a default handler if some log is written before this
     # function is called. We therefore remove all handlers that have
@@ -277,7 +281,7 @@ class RunFilter(object):
         self.filters = make_list(filter or [])
         for arg_name, arg_value in kwargs.items():
             if not arg_name.startswith('filter_'):
-                logging.critical('Invalid keyword argument name "%s"' % arg_name)
+                logging.critical('Invalid filter keyword argument name "%s"' % arg_name)
             attribute = arg_name[len('filter_'):]
             # Add a filter for the specified property.
             self.filters.append(self._build_filter(attribute, arg_value))
@@ -403,7 +407,7 @@ def get_color(fraction, min_wins):
 
 
 def get_colors(cells, min_wins):
-    result = dict((col, (0.5, 0.5, 0.5)) for col in cells.keys())
+    result = {col: (0.5, 0.5, 0.5) for col in cells.keys()}
     min_value, max_value = get_min_max(cells.values())
 
     if min_value == max_value:
