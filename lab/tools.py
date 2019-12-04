@@ -152,11 +152,14 @@ class deprecated(object):
 
 
 def make_list(value):
-    if isinstance(value, list):
-        return value
-    if isinstance(value, (tuple, set)):
+    if value is None:
+        return []
+    elif isinstance(value, list):
+        return value[:]
+    elif isinstance(value, (tuple, set)):
         return list(value)
-    return [value]
+    else:
+        return [value]
 
 
 def makedirs(path):
@@ -227,12 +230,12 @@ def find_file(filenames, dir='.'):
         path = os.path.join(dir, filename)
         if os.path.exists(path):
             return path
-    raise IOError('none found in %r: %r' % (dir, filenames))
+    raise IOError('none found in {!r}: {!r}'.format(dir, filenames))
 
 
 def run_command(cmd, **kwargs):
     """Run command cmd and return the output."""
-    logging.info('Executing %s %s' % (' '.join(cmd), kwargs))
+    logging.info('Executing {} {}'.format(' '.join(cmd), kwargs))
     return subprocess.call(cmd, **kwargs)
 
 
@@ -264,7 +267,7 @@ class Properties(dict):
             try:
                 self.update(json.load(f))
             except ValueError as e:
-                logging.critical("JSON parse error in file '%s': %s" % (filename, e))
+                logging.critical("JSON parse error in file '{}': {}".format(filename, e))
 
     def add_unexplained_error(self, error):
         add_unexplained_error(self, error)
@@ -278,7 +281,7 @@ class Properties(dict):
 
 class RunFilter(object):
     def __init__(self, filter, **kwargs):
-        self.filters = make_list(filter or [])
+        self.filters = make_list(filter)
         for arg_name, arg_value in kwargs.items():
             if not arg_name.startswith('filter_'):
                 logging.critical('Invalid filter keyword argument name "%s"' % arg_name)
@@ -546,15 +549,4 @@ class RawAndDefaultsHelpFormatter(argparse.HelpFormatter):
 
 
 def get_argument_parser():
-    def log_level(s):
-        return getattr(logging, s.upper())
-
-    parser = argparse.ArgumentParser(formatter_class=RawAndDefaultsHelpFormatter)
-    parser.add_argument(
-        '-l', '--log-level',
-        type=log_level,
-        dest='log_level',
-        choices=['DEBUG', 'INFO', 'WARNING'],
-        default='INFO',
-        help='Logging verbosity')
-    return parser
+    return argparse.ArgumentParser(formatter_class=RawAndDefaultsHelpFormatter)

@@ -1,18 +1,28 @@
 News
 ====
 
-v4.3 (unreleased)
+v5.0 (2019-12-04)
 -----------------
 
 Lab
 ^^^
+* Deprecate support for Python versions 2.7 to 3.5.
+* Allow only a single aggregation function for ``Attribute`` objects.
+* If there is only a single HTML table, show it when the page loads.
+* Remove broken ``--log-level`` command line parameter. You can call
+  ``tools.configure_logging(logging.DEBUG)`` to enable debug messages instead.
+* Pass old hard memory limit when setting soft memory limit.
 
 Downward Lab
 ^^^^^^^^^^^^
-* Scatter plots: simplify code by letting Matplotlib compute axis limits automatically.
-* Scatter plots: draw points for algorithm pairs with missing values on axis boundaries.
-* Scatter plots: allow drawing negative values on linear and symlog axes.
-* Scatter plots: fold PlotReport class into ScatterPlotReport.
+* Scatter plots:
+
+  * Add *relative* parameter for drawing relative scatter plots.
+  * Draw points for algorithm pairs with missing values on axis boundaries.
+  * Allow drawing negative values on linear and symlog axes.
+  * Remove *xscale* and *yscale* parameters in favor of a new *scale* parameter.
+  * Fold ``PlotReport`` class into ``ScatterPlotReport``.
+  * Simplify code by letting Matplotlib compute axis limits automatically.
 
 
 v4.2 (2019-09-27)

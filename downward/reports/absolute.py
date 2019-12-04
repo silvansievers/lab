@@ -183,7 +183,7 @@ class AbsoluteReport(PlanningReport):
                                      'domain-wise table can be generated.\n' %
                                      attribute)
 
-            toc_lines.append("- **[''%s'' #%s]**" % (attribute, attribute))
+            toc_lines.append("- **[''{}'' #{}]**".format(attribute, attribute))
             toc_lines.append('  - ' + ' '.join(toc_line))
             sections.append((attribute, '\n'.join(parts)))
 
@@ -193,9 +193,9 @@ class AbsoluteReport(PlanningReport):
 
         toc = '\n'.join(toc_lines)
 
-        content = '\n'.join('= %s =[%s]\n\n%s' % (attr, attr, section)
+        content = '\n'.join('= {} =[{}]\n\n{}'.format(attr, attr, section)
                             for (attr, section) in sections)
-        return '%s\n\n\n%s' % (toc, content)
+        return '{}\n\n\n{}'.format(toc, content)
 
     def _get_general_info(self):
         table = reports.Table(title='algorithm')
@@ -214,9 +214,10 @@ class AbsoluteReport(PlanningReport):
             logging.warning('Table containing algorithm information is empty.')
             return node_info
 
-    def _get_group_functions(self, attribute):
+    def _get_aggregation_function(self, attribute):
         """Decide on a list of group functions for this attribute."""
-        return [(reports.function_name(f), f) for f in attribute.functions]
+        func = attribute.function
+        return (reports.function_name(func), func)
 
     def _add_table_info(self, attribute, func_name, table):
         """
@@ -240,8 +241,7 @@ class AbsoluteReport(PlanningReport):
         assert self.attribute_is_numeric(attribute), attribute
         table = self._get_empty_table(attribute)
         self._add_summary_functions(table, attribute)
-        # The first group function is used for aggregation.
-        func_name, func = self._get_group_functions(attribute)[0]
+        func_name, func = self._get_aggregation_function(attribute)
         num_probs = 0
         self._add_table_info(attribute, func_name, table)
         domain_algo_values = defaultdict(list)
@@ -273,7 +273,7 @@ class AbsoluteReport(PlanningReport):
                 count = ','.join(num_values_list)
             link = None
             if self.use_domain_links:
-                link = '#%s-%s' % (attribute, domain)
+                link = '#{}-{}'.format(attribute, domain)
             formatter = reports.CellFormatter(link=link, count=count)
             table.cell_formatters[domain][table.header_column] = formatter
 
@@ -324,5 +324,5 @@ class AbsoluteReport(PlanningReport):
         return table
 
     def _add_summary_functions(self, table, attribute):
-        for funcname, func in self._get_group_functions(attribute):
-            table.add_summary_function(funcname.capitalize(), func)
+        funcname, func = self._get_aggregation_function(attribute)
+        table.add_summary_function(funcname.capitalize(), func)

@@ -100,38 +100,55 @@ def function_name(f):
     return names.get(f.__name__, f.__name__)
 
 
+def get_aggregation_function(function, functions):
+    """
+    Code for backwards compatibility.
+    """
+    if function and functions:
+        logging.critical(
+            'You cannot use "function" and "functions" kwargs for '
+            'Attribute at the same time.')
+    elif functions:
+        tools.show_deprecation_warning(
+            '"functions" kwarg for Attribute is deprecated. Use '
+            '"function" instead.')
+        if len(functions) > 1:
+            logging.critical(
+                'Using multiple aggregation functions is unsupported.')
+        return functions[0]
+    else:
+        return function
+
+
 class Attribute(str):
     """A string subclass for attributes in reports."""
     def __new__(cls, name, **kwargs):
         return str.__new__(cls, name)
 
     def __init__(
-            self, name, absolute=False, min_wins=True, functions=sum,
-            scale=None, digits=2):
+            self, name, absolute=False, min_wins=True, function=None,
+            functions=None, scale=None, digits=2):
         """
-        Use this class if your **own** attribute needs a non-default
+        Use this class if your **custom** attribute needs a non-default
         value for:
 
-        * *absolute*: If False, only include tasks for which all task
+        * *absolute*: if False, only include tasks for which all task
           runs have values in a domain-wise table (e.g. ``coverage`` is
           absolute, whereas ``expansions`` is not, because we can't
           compare algorithms A and B for task X if B has no value for
           ``expansions``).
-        * *min_wins*: Set to True if a smaller value for this attribute
+        * *min_wins*: set to True if a smaller value for this attribute
           is better, to False if a higher value is better and to None
           if values can't be compared. (E.g., *min_wins* is False for
           ``coverage``, but it is True for ``expansions``).
-        * *functions*: Set the function or functions used to group
-          values of multiple runs for this attribute. The first entry
-          is used to aggregate values for domain-wise reports (e.g. for
-          ``coverage`` this is :py:func:`sum`, whereas ``expansions``
-          uses :py:func:`geometric_mean`). This can be a single
-          function or a list of functions and defaults to
-          :py:func:`sum`.
-        * *scale*: Default scaling. Can be one of "linear", "log" and
+        * *function*: the function used to aggregate
+          values of multiple runs for this attribute, for example, in
+          domain reports. Defaults to :py:func:`sum`.
+        * *functions*: deprecated. Pass a single *function* instead.
+        * *scale*: default scaling. Can be one of "linear", "log" and
           "symlog". If *scale* is None (default), the reports will
           choose the scaling.
-        * *digits*: Number of digits after the decimal point.
+        * *digits*: number of digits after the decimal point.
 
         The ``downward`` package automatically uses appropriate
         settings for most attributes.
@@ -143,16 +160,15 @@ class Attribute(str):
         """
         self.absolute = absolute
         self.min_wins = min_wins
-        if not isinstance(functions, collections.Iterable):
-            functions = [functions]
-        self.functions = functions
+        self.function = get_aggregation_function(
+            function, tools.make_list(functions)) or sum
         self.scale = scale
         self.digits = digits
 
     def copy(self, name):
         return Attribute(
             name, absolute=self.absolute, min_wins=self.min_wins,
-            functions=self.functions, scale=self.scale, digits=self.digits)
+            function=self.function, scale=self.scale, digits=self.digits)
 
 
 class Report(object):
@@ -256,7 +272,7 @@ class Report(object):
            :pyobject: QualityFilters
 
         """
-        self.attributes = tools.make_list(attributes or [])
+        self.attributes = tools.make_list(attributes)
         if format not in txt2tags.TARGETS + ['eps', 'pdf', 'pgf', 'png', 'py']:
             raise ValueError('invalid format: {}'.format(format))
         self.output_format = format
@@ -452,9 +468,9 @@ class CellFormatter(object):
     def format_value(self, value):
         result = str(value)
         if self.link:
-            result = "[''%s'' %s]" % (result, self.link)
+            result = "[''{}'' {}]".format(result, self.link)
         if self.count:
-            result = '%s (%s)' % (result, self.count)
+            result = '{} ({})'.format(result, self.count)
         if self.bold:
             result = '**%s**' % result
         return result
@@ -766,7 +782,7 @@ class Table(collections.defaultdict):
         value_text = format_value(value)
 
         if color is not None:
-            value_text = '{%s|color:%s}' % (value_text, color)
+            value_text = '{{{}|color:{}}}'.format(value_text, color)
         if bold:
             value_text = '**%s**' % value_text
         if justify_right:
@@ -813,7 +829,7 @@ def extract_summary_rows(from_table, to_table, link=None):
     to **to_table**.
     """
     for name, row in from_table.get_summary_rows().items():
-        row_name = '%s - %s' % (from_table.title, name)
+        row_name = '{} - {}'.format(from_table.title, name)
         if link is not None:
             formatter = CellFormatter(link=link)
             to_table.cell_formatters[row_name][to_table.header_column] = formatter

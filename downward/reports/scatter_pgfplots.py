@@ -27,14 +27,15 @@ class ScatterPgfplots(object):
     def _get_plot(cls, report):
         lines = []
         options = cls._get_axis_options(report)
-        if report.missing_value is not None:
-            options['xmax'] = report.missing_value
-            options['ymax'] = report.missing_value
+        if report.x_upper is not None:
+            options['xmax'] = report.x_upper
+        if report.y_upper is not None:
+            options['ymax'] = report.y_upper
         lines.append('\\begin{axis}[%s]' % cls._format_options(options))
         for category, coords in sorted(report.categories.items()):
             plot = {'only marks': True}
             lines.append(
-                '\\addplot+[%s] coordinates {\n%s\n};' % (
+                '\\addplot+[{}] coordinates {{\n{}\n}};'.format(
                     cls._format_options(plot),
                     ' '.join(str(c) for c in coords)))
             if category:
@@ -44,8 +45,12 @@ class ScatterPgfplots(object):
                 # categories. Add a corresponding entry to the legend.
                 lines.append('\\addlegendentry{default}')
 
-        # Add black diagonal line.
-        lines.append('\\draw[color=black] (rel axis cs:0,0) -- (rel axis cs:1,1);')
+        if report.plot_horizontal_line:
+            # Add black line at y=1.
+            lines.append('\\draw[color=black] (axis cs:0,1) -- (axis cs:800000000,1);')
+        if report.plot_diagonal_line:
+            # Add black diagonal line.
+            lines.append('\\draw[color=black] (rel axis cs:0,0) -- (rel axis cs:1,1);')
 
         lines.append('\\end{axis}')
         return lines
@@ -100,7 +105,7 @@ class ScatterPgfplots(object):
             elif isinstance(value, tools.string_type):
                 if ' ' in value or '=' in value:
                     value = '{%s}' % value
-                opts.append("%s=%s" % (key, value.replace("_", "-")))
+                opts.append("{}={}".format(key, value.replace("_", "-")))
             else:
-                opts.append("%s=%s" % (key, value))
+                opts.append("{}={}".format(key, value))
         return ", ".join(opts)

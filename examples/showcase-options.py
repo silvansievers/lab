@@ -9,7 +9,9 @@ import os.path
 import platform
 from subprocess import call
 
+from lab import reports
 from lab.environments import LocalEnvironment, BaselSlurmEnvironment
+from lab.reports import Attribute
 from lab.reports.filter import FilterReport
 
 from downward.experiment import FastDownwardExperiment
@@ -145,7 +147,9 @@ exp.add_report(
 quality_filters = QualityFilters()
 exp.add_report(
     AbsoluteReport(
-        attributes=['coverage', 'cost', 'quality'],
+        attributes=[
+            'coverage', 'cost',
+            Attribute('quality', function=reports.arithmetic_mean)],
         filter=[quality_filters.store_costs, quality_filters.add_quality]),
     name='report-abs-builtin-filters')
 exp.add_report(
@@ -173,6 +177,15 @@ exp.add_report(
     name='report-scatter',
     outfile=os.path.join('plots', 'scatter.png'))
 
+exp.add_report(
+    ScatterPlotReport(
+        relative=True,
+        attributes=['cost'],
+        filter_algorithm=['iter-hadd', 'lama11'],
+        scale='log'),
+    name='report-relative-scatter',
+    outfile=os.path.join('plots', 'relative-scatter.png'))
+
 matplotlib_options = {
     'font.family': 'serif',
     'font.weight': 'normal',
@@ -196,8 +209,7 @@ for format in ["png", "tex"]:
             format=format,
             filter=only_two_algorithms,
             get_category=get_domain,
-            xscale='linear',
-            yscale='linear',
+            scale='linear',
             matplotlib_options=matplotlib_options),
         outfile=os.path.join('plots', 'scatter-domain.' + format))
 exp.add_report(

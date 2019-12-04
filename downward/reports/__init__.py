@@ -47,18 +47,18 @@ class PlanningReport(Report):
         Attribute('cost', scale='linear'),
         Attribute('coverage', absolute=True, min_wins=False, scale='linear'),
         Attribute('dead_ends', min_wins=False),
-        Attribute('evaluations', functions=geometric_mean),
-        Attribute('expansions', functions=geometric_mean),
-        Attribute('generated', functions=geometric_mean),
+        Attribute('evaluations', function=geometric_mean),
+        Attribute('expansions', function=geometric_mean),
+        Attribute('generated', function=geometric_mean),
         Attribute(
             'initial_h_value', min_wins=False, scale='linear',
-            functions=reports.finite_sum),
+            function=reports.finite_sum),
         Attribute('plan_length', scale='linear'),
-        Attribute('planner_time', functions=geometric_mean),
+        Attribute('planner_time', function=geometric_mean),
         Attribute('quality', absolute=True, min_wins=False),
         Attribute('score_*', min_wins=False, digits=4),
-        Attribute('search_time', functions=geometric_mean),
-        Attribute('total_time', functions=geometric_mean),
+        Attribute('search_time', function=geometric_mean),
+        Attribute('total_time', function=geometric_mean),
         Attribute('unsolvable', absolute=True, min_wins=False),
         Attribute('unsolvable_incomplete', absolute=True, min_wins=False),
     ]
@@ -100,11 +100,11 @@ class PlanningReport(Report):
 
         """
         # Set non-default options for some attributes.
-        attributes = tools.make_list(kwargs.get('attributes') or [])
+        attributes = tools.make_list(kwargs.get('attributes'))
         kwargs['attributes'] = [self._prepare_attribute(attr) for attr in attributes]
 
         # Remember the order of algorithms if it is given as a keyword argument filter.
-        self.filter_algorithm = tools.make_list(kwargs.get('filter_algorithm', []))
+        self.filter_algorithm = tools.make_list(kwargs.get('filter_algorithm'))
 
         Report.__init__(self, **kwargs)
 
