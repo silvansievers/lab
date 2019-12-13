@@ -22,19 +22,21 @@ import logging
 import os.path
 import shutil
 import subprocess
+import tarfile
 
 from lab import tools
 
+GIT = 'git'
+MERCURIAL = 'hg'
+VERSION_CONTROL_SYSTEMS = [GIT, MERCURIAL]
 
-_HG_ID_CACHE = {}
+
+_ID_CACHE = {}
 
 
-def hg_id(repo, args=None, rev=None):
-    args = args or []
-    if rev:
-        args.extend(['-r', str(rev)])
-    cmd = ('hg', 'id', '--repository', repo) + tuple(args)
-    if cmd not in _HG_ID_CACHE:
+def _get_id(cmd):
+    cmd = tuple(cmd)
+    if cmd not in _ID_CACHE:
         try:
             result = tools.get_string(subprocess.check_output(cmd).strip())
         except subprocess.CalledProcessError:
@@ -43,16 +45,62 @@ def hg_id(repo, args=None, rev=None):
                     ' '.join(cmd)))
         else:
             assert result
-            _HG_ID_CACHE[cmd] = result
-    return _HG_ID_CACHE[cmd]
+            _ID_CACHE[cmd] = result
+    return _ID_CACHE[cmd]
+
+
+def hg_id(repo, args=None, rev=None):
+    args = args or []
+    if rev:
+        args.extend(['-r', str(rev)])
+    cmd = ['hg', 'id', '--repository', repo] + args
+    return _get_id(cmd)
+
+
+def git_id(repo, args=None, rev=None):
+    args = args or []
+    if rev:
+        args.append(rev)
+    cmd = ['git', '--git-dir', os.path.join(repo, '.git'), 'rev-parse', '--short'] + args
+    return _get_id(cmd)
+
+
+def _raise_unknown_vcs_error(vcs):
+    raise AssertionError('Unknown version control system "{}".'.format(vcs))
+
+
+def get_version_control_system(repo):
+    vcs = [x for x in VERSION_CONTROL_SYSTEMS
+           if os.path.exists(os.path.join(repo, '.{}'.format(x)))]
+    if len(vcs) == 0:
+        logging.critical('Detecting version control system failed: '
+                         'No candidate system found.')
+    elif len(vcs) == 1:
+        return vcs[0]
+    else:
+        logging.critical(
+            'Repo {} must contain one of the following subdirectories: {}'.format(
+                repo, ", ".join(".{}".format(x) for x in VERSION_CONTROL_SYSTEMS)))
 
 
 def get_global_rev(repo, rev=None):
-    return hg_id(repo, args=['-i'], rev=rev)
+    vcs = get_version_control_system(repo)
+    if vcs == MERCURIAL:
+        return hg_id(repo, args=['-i'], rev=rev)
+    elif vcs == GIT:
+        return git_id(repo, rev=rev)
+    else:
+        _raise_unknown_vcs_error(vcs)
 
 
 def get_rev_id(repo, rev=None):
-    return hg_id(repo, rev=rev)
+    vcs = get_version_control_system(repo)
+    if vcs == MERCURIAL:
+        return hg_id(repo, rev=rev)
+    elif vcs == GIT:
+        return git_id(repo, rev=rev)
+    else:
+        _raise_unknown_vcs_error(vcs)
 
 
 def _compute_md5_hash(mylist):
@@ -112,10 +160,29 @@ class CachedRevision(object):
                     'it and try again.'.format(self.path))
         else:
             tools.makedirs(self.path)
-            excludes = ['-X{}'.format(d) for d in ['experiments', 'misc']]
-            retcode = tools.run_command(
-                ['hg', 'archive', '-r', self.global_rev] + excludes + [self.path],
-                cwd=self.repo)
+            exclude_dirs = ['experiments', 'misc']
+            vcs = get_version_control_system(self.repo)
+            if vcs == MERCURIAL:
+                retcode = tools.run_command(
+                    ['hg', 'archive', '-r', self.global_rev] +
+                    ['-X{}'.format(d) for d in exclude_dirs] + [self.path],
+                    cwd=self.repo)
+            elif vcs == GIT:
+                tar_archive = os.path.join(self.path, 'downward.tgz')
+                cmd = ['git', 'archive', '--format', 'tar', self.global_rev]
+                with open(tar_archive, 'w') as f:
+                    retcode = tools.run_command(cmd, stdout=f, cwd=self.repo)
+
+                if retcode == 0:
+                    with tarfile.open(tar_archive) as tf:
+                        tf.extractall(self.path)
+                    tools.remove_path(tar_archive)
+
+                    for exclude_dir in exclude_dirs:
+                        tools.remove_path(os.path.join(self.path, exclude_dir))
+            else:
+                _raise_unknown_vcs_error(vcs)
+
             if retcode != 0:
                 shutil.rmtree(self.path)
                 logging.critical('Failed to make checkout.')

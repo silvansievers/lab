@@ -1,6 +1,19 @@
 News
 ====
 
+v5.1 (2019-12-10)
+-----------------
+
+Lab
+^^^
+* Test Lab on Python 3.8.
+* Use active Python version to call run files in local experiments.
+
+Downward Lab
+^^^^^^^^^^^^
+* Support Fast Downward Git repos (Patrick Ferber).
+
+
 v5.0 (2019-12-04)
 -----------------
 
