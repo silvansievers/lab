@@ -222,7 +222,7 @@ class PlanningReport(Report):
         for run in self.runs.values():
             error_message = tools.get_unexplained_errors_message(run)
             if error_message:
-                # logging.error(error_message)
+                logging.error(error_message)
                 run_dir = run['run_dir']
                 # Silvan: comment the following loop out to get rid of
                 # the plain error output in unexplained errors
