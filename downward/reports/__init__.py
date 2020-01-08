@@ -25,8 +25,9 @@ from fnmatch import fnmatch
 import logging
 
 from lab import reports
-from lab import tools
+from lab.reports import markup
 from lab.reports import Attribute, Report, geometric_mean
+from lab import tools
 
 
 class PlanningReport(Report):
@@ -76,6 +77,8 @@ class PlanningReport(Report):
         'domain', 'problem', 'algorithm', 'unexplained_errors',
         'error', 'planner_wall_clock_time', 'raw_memory', 'node'
     ]
+
+    ERROR_LOG_MAX_LINES = 100
 
     def __init__(self, **kwargs):
         """
@@ -139,6 +142,13 @@ class PlanningReport(Report):
 
         self.algorithms = self._get_algorithm_order()
 
+        num_unexplained_errors = sum(int(bool(
+            tools.get_unexplained_errors_message(run))) for run in self.runs.values())
+        func = logging.info if num_unexplained_errors == 0 else logging.error
+        func(
+            'Report contains {num_unexplained_errors} runs with unexplained'
+            ' errors.'.format(**locals()))
+
         if len(problems) * len(self.algorithms) != len(self.runs):
             logging.warning(
                 'Not every algorithm has been run on every task. '
@@ -177,6 +187,23 @@ class PlanningReport(Report):
             run.get("node", "<attribute 'node' missing>")
             for run in self.runs.values()}
 
+    def _format_unexplained_errors(self, errors):
+        """
+        Preserve line breaks and white space. If text has more than
+        ERROR_LOG_MAX_LINES lines, omit lines in the middle of the text.
+        """
+        linebreak = '\\\\'
+        text = "''{}''".format(errors).replace(
+            '\\n', linebreak).replace(
+            ' ', markup.ESCAPE_WHITESPACE)
+        lines = text.split(linebreak)
+        if len(lines) <= self.ERROR_LOG_MAX_LINES:
+            return text
+        index = (self.ERROR_LOG_MAX_LINES - 2) // 2
+        text = linebreak.join(lines[:index] + ['', '[...]', ''] + lines[-index:])
+        assert text.startswith("''") and text.endswith("''"), text
+        return text
+
     def _get_warnings_text_and_table(self):
         """
         Return a :py:class:`Table <lab.reports.Table>` containing one line for
@@ -192,21 +219,20 @@ class PlanningReport(Report):
             'output-to-slurm.err' in run.get('unexplained_errors', [])
             for run in self.runs.values())
 
-        num_unexplained_errors = 0
         for run in self.runs.values():
             error_message = tools.get_unexplained_errors_message(run)
             if error_message:
                 # logging.error(error_message)
-                num_unexplained_errors += 1
+                run_dir = run['run_dir']
                 # Silvan: comment the following two lines out to get rid of
                 # the plain error output in unexplained errors
                 for attr in self.ERROR_ATTRIBUTES:
-                    table.add_cell(run['run_dir'], attr, run.get(attr, '?'))
-
-        if num_unexplained_errors:
-            logging.error(
-                'There were {num_unexplained_errors} runs with unexplained'
-                ' errors.'.format(**locals()))
+                    value = run.get(attr, '?')
+                    if attr == 'unexplained_errors':
+                        value = self._format_unexplained_errors(value)
+                        # Use formatted value as-is.
+                        table.cell_formatters[run_dir][attr] = reports.CellFormatter()
+                    table.add_cell(run_dir, attr, value)
 
         errors = []
 
