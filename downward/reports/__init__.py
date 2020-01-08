@@ -224,7 +224,7 @@ class PlanningReport(Report):
             if error_message:
                 # logging.error(error_message)
                 run_dir = run['run_dir']
-                # Silvan: comment the following two lines out to get rid of
+                # Silvan: comment the following loop out to get rid of
                 # the plain error output in unexplained errors
                 for attr in self.ERROR_ATTRIBUTES:
                     value = run.get(attr, '?')
