@@ -107,12 +107,6 @@ class FastDownwardExperiment(Experiment):
         >>> exp.add_step('start', exp.start_runs)
         >>> exp.add_fetcher(name='fetch')
 
-    .. note::
-
-        By default, "output.sas" translator output files are deleted
-        after the driver exits. To keep these files use ``del
-        exp.commands['remove-output-sas']`` in your experiment script.
-
     """
 
     # Built-in parsers that can be passed to exp.add_parser().
@@ -178,8 +172,6 @@ class FastDownwardExperiment(Experiment):
         # Use OrderedDict to ensure that names are unique and ordered.
         self._algorithms = OrderedDict()
 
-        self.add_command('remove-output-sas', ['rm', '-f', 'output.sas'])
-
     def _get_tasks(self):
         tasks = []
         for benchmarks_dir, suite in self._suites.items():
@@ -198,7 +190,7 @@ class FastDownwardExperiment(Experiment):
             exp.add_suite(benchmarks_dir, ["gripper:prob01.pddl"])
 
         One source for benchmarks is
-        http://bitbucket.org/aibasel/downward-benchmarks. After cloning
+        https://github.com/aibasel/downward-benchmarks. After cloning
         the repo, you can generate suites with the ``suites.py``
         script. We recommend using the suite ``optimal_strips`` for
         optimal planning and ``satisficing`` for satisficing planning::

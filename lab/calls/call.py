@@ -31,8 +31,8 @@ def set_limit(kind, soft_limit, hard_limit):
     try:
         resource.setrlimit(kind, (soft_limit, hard_limit))
     except (OSError, ValueError) as err:
-        sys.stderr.write(
-            'Resource limit for %s could not be set to %s (%s)\n' %
+        logging.error(
+            'Resource limit for %s could not be set to %s (%s)' %
             (kind, (soft_limit, hard_limit), err))
 
 
@@ -205,7 +205,7 @@ class Call(object):
         if (self.wall_clock_time_limit is not None and
                 wall_clock_time > self.wall_clock_time_limit):
             logging.error(
-                'wall-clock time for %s too high: %.2f > %d\n' %
+                'wall-clock time for %s too high: %.2f > %d' %
                 (self.name, wall_clock_time, self.wall_clock_time_limit))
         logging.info('{} exit code: {}'.format(self.name, retcode))
         return retcode
