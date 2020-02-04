@@ -22,9 +22,8 @@ Parse Fast Downward exit code and store a message describing the outcome
 in the "error" attribute.
 """
 
-from lab.parser import Parser
-
 from downward import outcomes
+from lab.parser import Parser
 
 
 def parse_exit_code(content, props):
@@ -37,26 +36,28 @@ def parse_exit_code(content, props):
     driver.log and driver.err to find the reason for the error.
 
     """
-    assert 'error' not in props
+    assert "error" not in props
 
     # Check if Fast Downward uses the latest exit codes.
     use_legacy_exit_codes = True
     for line in content.splitlines():
-        if (line.startswith('translate exit code:') or
-                line.startswith('search exit code:')):
+        if line.startswith("translate exit code:") or line.startswith(
+            "search exit code:"
+        ):
             use_legacy_exit_codes = False
             break
 
-    exitcode = props['planner_exit_code']
+    exitcode = props["planner_exit_code"]
     outcome = outcomes.get_outcome(exitcode, use_legacy_exit_codes)
-    props['error'] = outcome.msg
+    props["error"] = outcome.msg
     if use_legacy_exit_codes:
-        props['unsolvable'] = int(outcome.msg == 'unsolvable')
+        props["unsolvable"] = int(outcome.msg == "unsolvable")
         props['unsolvable_incomplete'] = int(
             outcome.msg == 'incomplete-search-found-no-plan')
     else:
-        props['unsolvable'] = int(
-            outcome.msg in ['translate-unsolvable', 'search-unsolvable'])
+        props["unsolvable"] = int(
+            outcome.msg in ["translate-unsolvable", "search-unsolvable"]
+        )
         props['unsolvable_incomplete'] = int(
             outcome.msg == 'search-unsolvable-incomplete')
     if not outcome.explained:
@@ -67,11 +68,12 @@ class ExitCodeParser(Parser):
     def __init__(self):
         Parser.__init__(self)
         self.add_pattern(
-            'planner_exit_code',
-            r'planner exit code: (.+)\n',
+            "planner_exit_code",
+            r"planner exit code: (.+)\n",
             type=int,
-            file='driver.log',
-            required=True)
+            file="driver.log",
+            required=True,
+        )
         self.add_function(parse_exit_code)
 
 

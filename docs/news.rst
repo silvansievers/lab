@@ -1,19 +1,20 @@
 News
 ====
 
-next (unreleased)
+v5.3 (2020-03-02)
 -----------------
 
 Lab
 ^^^
-* Bugfix for filters: retrieve new run ID from modified runs (Silvan Sievers).
+* Format source code with black (https://github.com/psf/black).
+* Fix filters: retrieve new run ID from modified runs (Silvan Sievers).
 
 Downward Lab
 ^^^^^^^^^^^^
 * Remove call to ``rm -f output.sas``. Newer Fast Downward versions remove the temporary file
   automatically. If you want to keep the file, add ``"--keep-sas-file"`` to the ``driver_options``.
-* Bugfix for ScatterPlotReport: skip None values in `max()` computation (Silvan Sievers).
-* Bugfix for ScatterPlotReport: place diagonal line correctly even if axis scales differ.
+* Fix ScatterPlotReport: skip None values in `max()` computation (Silvan Sievers).
+* Fix ScatterPlotReport: place diagonal line correctly even if axis scales differ.
 
 
 v5.2 (2020-01-07)

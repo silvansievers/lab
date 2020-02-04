@@ -1,8 +1,9 @@
 import lab
-from lab.experiment import ARGPARSER
-from lab.calls.call import Call
 from lab import reports
+from lab.calls.call import Call
+from lab.experiment import ARGPARSER
 from lab.environments import LapktSlurmEnvironment
+
 
 ARGPARSER.epilog
 reports.Table.add_col

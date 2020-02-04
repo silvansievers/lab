@@ -1,8 +1,9 @@
 #! /bin/bash
 
-# Test setup: see bitbucket-pipelines.yml
-
 set -exuo pipefail
 
-python -m flake8 --extend-ignore E125 --exclude=build,data,external,conf.py,.tox,.hg --max-line-length=90
+python -m black --check .
+# E203: whitespace before ':' (not compliant with PEP 8)
+python -m flake8 --extend-ignore E203 --exclude=build,data,external,conf.py,.tox,.hg --max-line-length=90
+python -m isort --check-only --recursive --skip data --skip txt2tags.py downward/ examples/ lab/ tests/ setup.py
 python -m pyupgrade `find downward lab tests -name "*.py" -not -path "*external*"`
