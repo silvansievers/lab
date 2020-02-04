@@ -63,7 +63,7 @@ class PlanningReport(Report):
         Attribute("search_time", function=geometric_mean),
         Attribute("total_time", function=geometric_mean),
         Attribute("unsolvable", absolute=True, min_wins=False),
-        Attribute('unsolvable_incomplete', absolute=True, min_wins=False),
+        Attribute("unsolvable_incomplete", absolute=True, min_wins=False),
     ]
 
     #: Attributes shown in the algorithm info table. Can be overriden in

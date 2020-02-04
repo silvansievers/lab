@@ -52,14 +52,14 @@ def parse_exit_code(content, props):
     props["error"] = outcome.msg
     if use_legacy_exit_codes:
         props["unsolvable"] = int(outcome.msg == "unsolvable")
-        props['unsolvable_incomplete'] = int(
-            outcome.msg == 'incomplete-search-found-no-plan')
+        props["unsolvable_incomplete"] = int(
+            outcome.msg == "incomplete-search-found-no-plan")
     else:
         props["unsolvable"] = int(
             outcome.msg in ["translate-unsolvable", "search-unsolvable"]
         )
-        props['unsolvable_incomplete'] = int(
-            outcome.msg == 'search-unsolvable-incomplete')
+        props["unsolvable_incomplete"] = int(
+            outcome.msg == "search-unsolvable-incomplete")
     if not outcome.explained:
         props.add_unexplained_error(outcome.msg)
 

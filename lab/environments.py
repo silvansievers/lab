@@ -470,11 +470,11 @@ class BaselSlurmEnvironment(SlurmEnvironment):
 class LapktSlurmEnvironment(SlurmEnvironment):
     """Environment for Basel's AI group."""
 
-    DEFAULT_PARTITION = 'infai'
-    DEFAULT_QOS = 'infai'
+    DEFAULT_PARTITION = "infai"
+    DEFAULT_QOS = "infai"
     # infai nodes have 61964 MiB and 16 cores => 3872.75 MiB per core
     # (see http://issues.fast-downward.org/issue733).
-    DEFAULT_MEMORY_PER_CPU = '3872M'
+    DEFAULT_MEMORY_PER_CPU = "3872M"
     DEFAULT_SETUP = (
-        'PYTHONPATH="%s:$PYTHONPATH"' % tools.get_lab_path() +
+        'export PYTHONPATH="%s:$PYTHONPATH"' % tools.get_lab_path() +
         'LMOD_DISABLE_SAME_NAME_AUTOSWAP="no" module load GCC/5.4.0-2.26')
