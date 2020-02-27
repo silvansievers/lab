@@ -14,6 +14,7 @@ reports.percentile_75
 reports.percentile_90
 reports.percentile_95
 lab.tools.deprecated
+lab.tools.get_lab_path
 
 Call
 

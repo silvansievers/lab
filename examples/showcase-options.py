@@ -27,10 +27,10 @@ REMOTE = NODE.endswith(".scicore.unibas.ch") or NODE.endswith(".cluster.bc2.ch")
 if REMOTE:
     ENV = BaselSlurmEnvironment("my.name@unibas.ch")
 else:
-    ENV = LocalEnvironment(processes=4)
+    ENV = LocalEnvironment(processes=2)
 REPO = os.environ["DOWNWARD_REPO"]
 BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
-REV_CACHE = os.path.expanduser("~/lab/revision-cache")
+REV_CACHE = os.environ.get("DOWNWARD_REVISION_CACHE")
 VCS = cached_revision.get_version_control_system(REPO)
 REV = "default" if VCS == cached_revision.MERCURIAL else "master"
 
