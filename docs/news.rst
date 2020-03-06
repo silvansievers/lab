@@ -1,6 +1,18 @@
 News
 ====
 
+next (unreleased)
+-----------------
+
+Lab
+^^^
+* Fix: gracefully handle missing HTML info or summary tables.
+
+Downward Lab
+^^^^^^^^^^^^
+* Add example experiment for running Singularity planner images.
+
+
 v5.4 (2020-03-01)
 -----------------
 
