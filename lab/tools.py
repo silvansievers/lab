@@ -217,16 +217,26 @@ def natural_sort(alist):
 
     >>> natural_sort(['file10.txt', 'file2.txt'])
     ['file2.txt', 'file10.txt']
+
+    >>> natural_sort(['1G', '3M', '2000K', '1M', '1K', '100'])
+    ['100', '1K', '1M', '2000K', '3M', '1G']
     """
 
     def to_int_if_number(text):
+        if not text:
+            return ""
         if text.isdigit():
             return int(text)
+
+        suffixes = {"K": 3, "M": 6, "G": 9}
+        number, suffix = text[:-1], text[-1]
+        if number.isdigit() and suffix in suffixes:
+            return int(number) * 10 ** suffixes[suffix]
         else:
             return text.lower()
 
     def extract_numbers(text):
-        parts = re.split("([0-9]+)", text)
+        parts = re.split("([0-9]+[KMG]?)", text)
         return [to_int_if_number(part) for part in parts]
 
     return sorted(alist, key=extract_numbers)
@@ -291,12 +301,14 @@ class Properties(dict):
 class RunFilter(object):
     def __init__(self, filter, **kwargs):
         self.filters = make_list(filter)
+        self.filtered_attributes = []  # Only needed for sanity checks.
         for arg_name, arg_value in kwargs.items():
             if not arg_name.startswith("filter_"):
                 logging.critical('Invalid filter keyword argument name "%s"' % arg_name)
             attribute = arg_name[len("filter_") :]
             # Add a filter for the specified property.
             self.filters.append(self._build_filter(attribute, arg_value))
+            self.filtered_attributes.append(attribute)
 
     def _build_filter(self, prop, value):
         # Do not define this function inplace to force early binding.
@@ -305,6 +317,8 @@ class RunFilter(object):
             # membership testing for str.
             if isinstance(value, (list, tuple, set)):
                 return run.get(prop) in value
+            elif callable(value):
+                logging.critical("filter_{} doesn't accept functions.".format(prop))
             else:
                 return run.get(prop) == value
 
@@ -317,9 +331,8 @@ class RunFilter(object):
         modified_run = run
         result = filter_(modified_run)
         if not isinstance(result, (dict, bool)):
-            logging.critical("Filters must return a dictionary or boolean")
-        # If a dict is returned, use it as the new run,
-        # otherwise take the old one.
+            logging.critical("Filters must return a dictionary or Boolean")
+        # If a dict is returned, use it as the new run, otherwise take the old one.
         if isinstance(result, dict):
             modified_run = result
         if not result:
@@ -328,6 +341,12 @@ class RunFilter(object):
         return modified_run
 
     def apply(self, props):
+        for attribute in self.filtered_attributes:
+            if not any(attribute in run for run in props.values()):
+                logging.critical(
+                    'No run has the attribute "{attribute}" (from '
+                    '"filter_{attribute}"). Is this a typo?'.format(**locals())
+                )
         for filter_ in self.filters:
             for old_run_id, run in list(props.items()):
                 del props[old_run_id]
