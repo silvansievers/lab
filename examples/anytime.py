@@ -13,7 +13,7 @@ from downward.reports.scatter import ScatterPlotReport
 from lab.environments import BaselSlurmEnvironment, LocalEnvironment
 
 
-ATTRIBUTES = ["coverage", "error", "cost", "expansions", "total_time"]
+ATTRIBUTES = ["coverage", "error", "cost"]
 
 NODE = platform.node()
 if NODE.endswith(".scicore.unibas.ch") or NODE.endswith(".cluster.bc2.ch"):
@@ -37,11 +37,11 @@ exp = FastDownwardExperiment(environment=ENV, revision_cache=REVISION_CACHE)
 exp.add_parser(exp.EXITCODE_PARSER)
 exp.add_parser(exp.TRANSLATOR_PARSER)
 exp.add_parser(exp.PLANNER_PARSER)
-exp.add_parser(exp.SINGLE_SEARCH_PARSER)
+exp.add_parser(exp.ANYTIME_SEARCH_PARSER)
 
 exp.add_suite(BENCHMARKS_DIR, SUITE)
 exp.add_algorithm("blind", REPO, REV, ["--search", "astar(blind())"])
-exp.add_algorithm("lmcut", REPO, REV, ["--search", "astar(lmcut())"])
+exp.add_algorithm("anytime", REPO, REV, ["--evaluator", "h=ff()", "--search", "iterated([lazy_wastar([h],w=10), lazy_wastar([h],w=5), lazy_wastar([h],w=3), lazy_wastar([h],w=2), lazy_wastar([h],w=1)])"])
 
 # Add step that writes experiment files to disk.
 exp.add_step("build", exp.build)
