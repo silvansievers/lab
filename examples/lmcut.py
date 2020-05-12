@@ -29,7 +29,7 @@ BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 # If REVISION_CACHE is None, the default ./data/revision-cache is used.
 REVISION_CACHE = os.environ.get("DOWNWARD_REVISION_CACHE")
 VCS = cached_revision.get_version_control_system(REPO)
-REV = "9e88b6e8eb22" if VCS == cached_revision.MERCURIAL else "master"
+REV = "default" if VCS == cached_revision.MERCURIAL else "master"
 
 exp = FastDownwardExperiment(environment=ENV, revision_cache=REVISION_CACHE)
 
