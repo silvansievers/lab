@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Downward Lab uses the Lab package to conduct experiments with the
 # Fast Downward planning system.
 #
@@ -59,7 +57,7 @@ class PlanningReport(Report):
         Attribute("plan_length", scale="linear"),
         Attribute("planner_time", function=geometric_mean),
         Attribute("quality", absolute=True, min_wins=False),
-        Attribute("score_*", min_wins=False, digits=4),
+        Attribute("score_*", absolute=True, min_wins=False, digits=4),
         Attribute("search_time", function=geometric_mean),
         Attribute("total_time", function=geometric_mean),
         Attribute("unsolvable", absolute=True, min_wins=False),
@@ -216,10 +214,8 @@ class PlanningReport(Report):
         ERROR_LOG_MAX_LINES lines, omit lines in the middle of the text.
         """
         linebreak = "\\\\"
-        text = (
-            "''{}''".format(errors)
-            .replace("\\n", linebreak)
-            .replace(" ", markup.ESCAPE_WHITESPACE)
+        text = f"''{errors}''".replace("\\n", linebreak).replace(
+            " ", markup.ESCAPE_WHITESPACE
         )
         lines = text.split(linebreak)
         if len(lines) <= self.ERROR_LOG_MAX_LINES:
@@ -265,7 +261,7 @@ class PlanningReport(Report):
             slurm_err_file = src_dir + "-grid-steps/slurm.err"
             try:
                 slurm_err_content = tools.get_slurm_err_content(src_dir)
-            except IOError:
+            except OSError:
                 slurm_err_content = (
                     "The slurm.err file was missing while creating the report."
                 )
@@ -282,8 +278,8 @@ class PlanningReport(Report):
         if table:
             errors.append(str(table))
 
-        infai_1_nodes = {"ase{:02d}.cluster.bc2.ch".format(i) for i in range(1, 25)}
-        infai_2_nodes = {"ase{:02d}.cluster.bc2.ch".format(i) for i in range(31, 55)}
+        infai_1_nodes = {f"ase{i:02d}.cluster.bc2.ch" for i in range(1, 25)}
+        infai_2_nodes = {f"ase{i:02d}.cluster.bc2.ch" for i in range(31, 55)}
         nodes = self._get_node_names()
         if nodes & infai_1_nodes and nodes & infai_2_nodes:
             errors.append("Report combines runs from infai_1 and infai_2 partitions.")

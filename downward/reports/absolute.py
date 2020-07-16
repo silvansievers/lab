@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Downward Lab uses the Lab package to conduct experiments with the
 # Fast Downward planning system.
 #
@@ -156,7 +154,7 @@ class AbsoluteReport(PlanningReport):
                     )
                     tables.append((pseudo_attribute, table))
             elif self.attribute_is_numeric(attribute):
-                domain_table = self._get_table(attribute)
+                domain_table = self._get_suite_table(attribute)
                 tables.append(("", domain_table))
                 reports.extract_summary_rows(
                     domain_table, summary, link="#" + attribute
@@ -171,7 +169,7 @@ class AbsoluteReport(PlanningReport):
                     )
                 )
             for domain in sorted(self.domains.keys()):
-                tables.append((domain, self._get_table(attribute, domain)))
+                tables.append((domain, self._get_domain_table(attribute, domain)))
 
             parts = []
             toc_line = []
@@ -195,7 +193,7 @@ class AbsoluteReport(PlanningReport):
                             "domain-wise table can be generated.\n" % attribute
                         )
 
-            toc_lines.append("- **[''{}'' #{}]**".format(attribute, attribute))
+            toc_lines.append(f"- **[''{attribute}'' #{attribute}]**")
             toc_lines.append("  - " + " ".join(toc_line))
             sections.append((attribute, "\n".join(parts)))
 
@@ -206,10 +204,9 @@ class AbsoluteReport(PlanningReport):
         toc = "\n".join(toc_lines)
 
         content = "\n".join(
-            "= {} =[{}]\n\n{}".format(attr, attr, section)
-            for (attr, section) in sections
+            f"= {attr} =[{attr}]\n\n{section}" for (attr, section) in sections
         )
-        return "{}\n\n\n{}".format(toc, content)
+        return f"{toc}\n\n\n{content}"
 
     def _get_general_info(self):
         table = reports.Table(title="algorithm")
@@ -268,8 +265,11 @@ class AbsoluteReport(PlanningReport):
         self._add_table_info(attribute, func_name, table)
         domain_algo_values = defaultdict(list)
         for (domain, _), runs in self.problem_runs.items():
-            if not attribute.absolute and any(
-                run.get(attribute) is None for run in runs
+            # If the attribute is absolute, no runs must have been filtered and
+            # no values must be missing.
+            if not attribute.absolute and (
+                len(runs) < len(self.algorithms)
+                or any(run.get(attribute) is None for run in runs)
             ):
                 continue
             num_probs += 1
@@ -284,19 +284,18 @@ class AbsoluteReport(PlanningReport):
         # name) if that number is the same for all algorithms. If not all algorithms
         # have values for the same number of problems, we write the full list of
         # different problem numbers.
-        num_values_lists = defaultdict(list)
         for domain in self.domains:
-            for algo in self.algorithms:
-                values = domain_algo_values.get((domain, algo), [])
-                num_values_lists[domain].append(str(len(values)))
-        for domain, num_values_list in num_values_lists.items():
-            if len(set(num_values_list)) == 1:
-                count = num_values_list[0]
+            task_counts = [
+                str(len(domain_algo_values.get((domain, algo), [])))
+                for algo in self.algorithms
+            ]
+            if len(set(task_counts)) == 1:
+                count = task_counts[0]
             else:
-                count = ",".join(num_values_list)
+                count = ", ".join(task_counts)
             link = None
             if self.use_domain_links:
-                link = "#{}-{}".format(attribute, domain)
+                link = f"#{attribute}-{domain}"
             formatter = reports.CellFormatter(link=link, count=count)
             table.cell_formatters[domain][table.header_column] = formatter
 
@@ -313,11 +312,6 @@ class AbsoluteReport(PlanningReport):
             for run in self.domain_algorithm_runs[domain, algo]:
                 table.add_cell(run["problem"], algo, run.get(attribute))
         return table
-
-    def _get_table(self, attribute, domain=None):
-        if domain:
-            return self._get_domain_table(attribute, domain)
-        return self._get_suite_table(attribute)
 
     def _get_empty_table(self, attribute=None, title=None, columns=None):
         """Return an empty table."""

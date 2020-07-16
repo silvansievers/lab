@@ -9,13 +9,12 @@ import os.path
 import platform
 from subprocess import call
 
-from downward import cached_revision
 from downward.experiment import FastDownwardExperiment
 from downward.reports.absolute import AbsoluteReport
 from downward.reports.compare import ComparativeReport
 from downward.reports.scatter import ScatterPlotReport
 from downward.reports.taskwise import TaskwiseReport
-from lab import reports
+from lab import cached_revision, reports
 from lab.environments import BaselSlurmEnvironment, LocalEnvironment
 from lab.reports import Attribute
 from lab.reports.filter import FilterReport
@@ -32,7 +31,7 @@ REPO = os.environ["DOWNWARD_REPO"]
 BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 REV_CACHE = os.environ.get("DOWNWARD_REVISION_CACHE")
 VCS = cached_revision.get_version_control_system(REPO)
-REV = "default" if VCS == cached_revision.MERCURIAL else "master"
+REV = "default" if VCS == cached_revision.MERCURIAL else "main"
 
 
 class QualityFilters(object):

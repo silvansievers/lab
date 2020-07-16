@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Downward Lab uses the Lab package to conduct experiments with the
 # Fast Downward planning system.
 #
@@ -25,13 +23,17 @@ import logging
 import os.path
 
 from downward import suites
-from downward.cached_revision import CachedRevision
+from downward.cached_revision import CachedFastDownwardRevision
 from lab import tools
 from lab.experiment import Experiment, get_default_data_dir, Run
 
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 DOWNWARD_SCRIPTS_DIR = os.path.join(DIR, "scripts")
+
+
+def _get_solver_resource_name(cached_rev):
+    return "fast_downward_" + cached_rev.name
 
 
 class FastDownwardRun(Run):
@@ -52,7 +54,7 @@ class FastDownwardRun(Run):
         self.add_command(
             "planner",
             [tools.get_python_executable()]
-            + ["{" + algo.cached_revision.get_planner_resource_name() + "}"]
+            + ["{" + _get_solver_resource_name(algo.cached_revision) + "}"]
             + algo.driver_options
             + ["{domain}", "{problem}"]
             + algo.component_options,
@@ -76,7 +78,7 @@ class FastDownwardRun(Run):
         self.set_property("id", [self.algo.name, self.task.domain, self.task.problem])
 
 
-class _DownwardAlgorithm(object):
+class _DownwardAlgorithm:
     def __init__(self, name, cached_revision, driver_options, component_options):
         self.name = name
         self.cached_revision = cached_revision
@@ -207,13 +209,11 @@ class FastDownwardExperiment(Experiment):
             >>> exp.add_suite(benchmarks_dir, ['airport', 'zenotravel'])
 
         """
-        if isinstance(suite, tools.string_type):
+        if isinstance(suite, str):
             suite = [suite]
         benchmarks_dir = os.path.abspath(benchmarks_dir)
         if not os.path.exists(benchmarks_dir):
-            logging.critical(
-                "Benchmarks directory {} not found.".format(benchmarks_dir)
-            )
+            logging.critical(f"Benchmarks directory {benchmarks_dir} not found.")
         self._suites[benchmarks_dir].extend(suite)
 
     def add_algorithm(
@@ -260,11 +260,11 @@ class FastDownwardExperiment(Experiment):
         Example experiment setup:
 
         >>> import os
-        >>> import cached_revision
+        >>> from lab.cached_revision import get_version_control_system, MERCURIAL
         >>> exp = FastDownwardExperiment()
         >>> repo = os.environ["DOWNWARD_REPO"]
-        >>> vcs = cached_revision.get_version_control_system(repo)
-        >>> rev = "default" if vcs == cached_revision.MERCURIAL else "master"
+        >>> vcs = get_version_control_system(repo)
+        >>> rev = "default" if vcs == MERCURIAL else "main"
 
         Test iPDB in the latest revision on the default branch:
 
@@ -298,10 +298,10 @@ class FastDownwardExperiment(Experiment):
         ...         "--overall-time-limit", "5m"])
 
         """
-        if not isinstance(name, tools.string_type):
-            logging.critical("Algorithm name must be a string: {}".format(name))
+        if not isinstance(name, str):
+            logging.critical(f"Algorithm name must be a string: {name}")
         if name in self._algorithms:
-            logging.critical("Algorithm names must be unique: {}".format(name))
+            logging.critical(f"Algorithm names must be unique: {name}")
         build_options = build_options or []
         driver_options = [
             "--validate",
@@ -312,7 +312,7 @@ class FastDownwardExperiment(Experiment):
         ] + (driver_options or [])
         algorithm = _DownwardAlgorithm(
             name,
-            CachedRevision(repo, rev, build_options),
+            CachedFastDownwardRevision(repo, rev, build_options),
             driver_options,
             component_options,
         )
@@ -363,14 +363,14 @@ class FastDownwardExperiment(Experiment):
     def _add_code(self):
         """Add the compiled code to the experiment."""
         for cached_rev in self._get_unique_cached_revisions():
-            self.add_resource(
-                "", cached_rev.get_cached_path(), cached_rev.get_exp_path()
-            )
+            cache_path = os.path.join(self.revision_cache, cached_rev.name)
+            dest_path = "code-" + cached_rev.name
+            self.add_resource("", cache_path, dest_path)
             # Overwrite the script to set an environment variable.
             self.add_resource(
-                cached_rev.get_planner_resource_name(),
-                cached_rev.get_cached_path("fast-downward.py"),
-                cached_rev.get_exp_path("fast-downward.py"),
+                _get_solver_resource_name(cached_rev),
+                os.path.join(cache_path, "fast-downward.py"),
+                os.path.join(dest_path, "fast-downward.py"),
             )
 
     def _add_runs(self):

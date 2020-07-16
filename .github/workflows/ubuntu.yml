@@ -15,15 +15,15 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-        python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
 
     - name: Set revision
       run: |
-        # Set environment variable with the latest revision hash on the default branch.
-        echo "::set-env name=DOWNWARD_REVISION::`hg id -r default http://hg.fast-downward.org`"
+        # Set environment variable with the latest revision hash.
+        echo "::set-env name=GIT_DOWNWARD_REV::`git ls-remote --exit-code --quiet https://github.com/aibasel/downward.git HEAD | cut -f1`"
 
     # Compile each Fast Downward revision only once and cache the results.
     - name: Cache revisions
@@ -31,8 +31,7 @@ jobs:
       uses: actions/cache@v1
       with:
         path: revision-cache
-        # TODO: Remove Python version from key once all versions compile Fast Downward.
-        key: ${{ runner.os }}-revision-cache-${{ matrix.python-version }}-${{ env.DOWNWARD_REVISION }}
+        key: ${{ runner.os }}-revision-cache-${{ env.GIT_DOWNWARD_REV }}
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
@@ -53,7 +52,7 @@ jobs:
       run: |
         tox -e docs,style
 
-    - name: Setup directory for dependencies
+    - name: Set up directory for dependencies
       run: |
         mkdir ../deps
         pushd ../deps
@@ -90,13 +89,13 @@ jobs:
       working-directory: ../deps
       run: |
         export DOWNWARD_BENCHMARKS=`realpath downward-benchmarks`
-        git clone https://github.com/aibasel/downward-benchmarks ${DOWNWARD_BENCHMARKS}
+        git clone --depth 1 https://github.com/aibasel/downward-benchmarks ${DOWNWARD_BENCHMARKS}
         echo "::set-env name=DOWNWARD_BENCHMARKS::${DOWNWARD_BENCHMARKS}"
 
     - name: Clone Fast Downward Mercurial
       working-directory: ../deps
       run: |
-        sudo apt-get -y install mercurial g++ cmake make python
+        sudo apt-get -y install cmake g++ git make python3
         export HG_DOWNWARD_REPO=`realpath fast-downward`
         hg clone http://hg.fast-downward.org ${HG_DOWNWARD_REPO}
         echo "::set-env name=HG_DOWNWARD_REPO::${HG_DOWNWARD_REPO}"
@@ -104,9 +103,8 @@ jobs:
     - name: Clone Fast Downward Git
       working-directory: ../deps
       run: |
-        # Clone temporary Git version of Fast Downward.
         export GIT_DOWNWARD_REPO=`realpath fast-downward-git`
-        git clone https://github.com/aibasel/git-downward.git ${GIT_DOWNWARD_REPO}
+        git clone --depth 1 https://github.com/aibasel/downward.git ${GIT_DOWNWARD_REPO}
         echo "::set-env name=GIT_DOWNWARD_REPO::${GIT_DOWNWARD_REPO}"
 
     - name: Download example Singularity image
@@ -122,15 +120,18 @@ jobs:
         # sudo apt-get update && sudo apt-get -y upgrade
 
         export DOWNWARD_REVISION_CACHE="${GITHUB_WORKSPACE}/revision-cache"
-        echo CACHE: $DOWNWARD_REVISION_CACHE
-
-        # Ensure that directory is present even if Python version doesn't create it.
-        # TODO: remove this once we drop the old Python versions.
-        mkdir -p ${DOWNWARD_REVISION_CACHE}
-        ls ${DOWNWARD_REVISION_CACHE}
+        echo CACHE: ${DOWNWARD_REVISION_CACHE}
 
         export DOWNWARD_REPO=${HG_DOWNWARD_REPO}
         time tox -e py
 
         export DOWNWARD_REPO=${GIT_DOWNWARD_REPO}
         time tox -e py
+
+    - name: Test installation with pip
+      run: |
+        pip install .
+        pushd /tmp
+        python -c "import lab"
+        popd
+        pip uninstall -y lab

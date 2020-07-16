@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Downward Lab uses the Lab package to conduct experiments with the
 # Fast Downward planning system.
 #
@@ -28,14 +26,6 @@ from downward.reports.scatter_pgfplots import ScatterPgfplots
 from lab import tools
 
 
-try:
-    # Python 2
-    from itertools import izip
-except ImportError:
-    # Python 3+
-    izip = zip
-
-
 class ScatterPlotReport(PlanningReport):
     """
     Generate a scatter plot for an attribute.
@@ -51,7 +41,7 @@ class ScatterPlotReport(PlanningReport):
         xlabel="",
         ylabel="",
         matplotlib_options=None,
-        **kwargs
+        **kwargs,
     ):
         """
         If *relative* is False, create a "standard" scatter plot with a
@@ -195,7 +185,7 @@ class ScatterPlotReport(PlanningReport):
         scales = ["linear", "log", "symlog"]
         for scale in [self.xscale, self.yscale]:
             if scale not in scales:
-                logging.critical("Scale {} not in {}".format(scale, scales))
+                logging.critical(f"Scale {scale} not in {scales}")
 
     def has_multiple_categories(self):
         return any(key is not None for key in self.categories.keys())
@@ -253,18 +243,14 @@ class ScatterPlotReport(PlanningReport):
     def _compute_missing_value(self, categories, axis, scale):
         if not self.show_missing:
             return None
-        if not any(
-            coord[axis] is None for coords in categories.values() for coord in coords
-        ):
+        values = [coord[axis] for coords in categories.values() for coord in coords]
+        real_values = [value for value in values if value is not None]
+        if len(real_values) == len(values):
+            # The list doesn't contain None values.
             return None
-        max_value = max(
-            coord[axis]
-            for coords in categories.values()
-            for coord in coords
-            if coord[axis] is not None
-        )
-        if max_value is None:
+        if not real_values:
             return 1
+        max_value = max(real_values)
         if scale == "linear":
             return max_value * 1.1
         return int(10 ** math.ceil(math.log10(max_value)))
@@ -322,18 +308,38 @@ class ScatterPlotReport(PlanningReport):
                 new_categories[category] = coords
         return new_categories
 
+    def _compute_num_tasks_on_sides_of_line(self, categories):
+        min_wins = self.attribute.min_wins
+        x_wins = 0
+        y_wins = 0
+        for coords in categories.values():
+            for x, y in coords:
+                if x is None or y is None:
+                    continue
+                if x > y:
+                    if min_wins:
+                        y_wins += 1
+                    else:
+                        x_wins += 1
+                elif x < y:
+                    if min_wins:
+                        x_wins += 1
+                    else:
+                        y_wins += 1
+        return x_wins, y_wins
+
     def _get_category_styles(self, categories):
         """
         Create dictionary mapping from category name to marker style.
         """
         shapes = "x+os^v<>D"
-        colors = ["C{}".format(c) for c in range(10)]
+        colors = [f"C{c}" for c in range(10)]
 
         num_styles = len(shapes) * len(colors)
         styles = [
             {"marker": shape, "c": color}
             for shape, color in itertools.islice(
-                izip(itertools.cycle(shapes), itertools.cycle(colors)), num_styles
+                zip(itertools.cycle(shapes), itertools.cycle(colors)), num_styles
             )
         ]
         assert (
@@ -345,9 +351,18 @@ class ScatterPlotReport(PlanningReport):
             category_styles[category] = styles[i % len(styles)]
         return category_styles
 
+    def _get_axis_label(self, label, algo, num_wins):
+        if label:
+            return label
+        if self.attribute.min_wins is None:
+            return algo
+        comp = "lower" if self.attribute.min_wins else "higher"
+        return f"{algo} ({comp} for {num_wins} tasks)"
+
     def _write_plot(self, runs, filename):
         # Map category names to coord tuples.
         self.categories = self._fill_categories()
+        x_wins, y_wins = self._compute_num_tasks_on_sides_of_line(self.categories)
         if self.relative:
             self.plot_diagonal_line = False
             self.plot_horizontal_line = True
@@ -361,6 +376,10 @@ class ScatterPlotReport(PlanningReport):
             self.categories = self._handle_missing_values(self.categories)
         if not self.categories:
             logging.critical("Plot contains no points.")
+
+        self.xlabel = self._get_axis_label(self.xlabel, self.algorithms[0], x_wins)
+        self.ylabel = self._get_axis_label(self.ylabel, self.algorithms[1], y_wins)
+
         self.styles = self._get_category_styles(self.categories)
         self.writer.write(self, filename)
 
@@ -369,9 +388,6 @@ class ScatterPlotReport(PlanningReport):
             logging.critical(
                 "Scatter plots need exactly 2 algorithms: %s" % self.algorithms
             )
-        self.xlabel = self.xlabel or self.algorithms[0]
-        self.ylabel = self.ylabel or self.algorithms[1]
-
         suffix = "." + self.output_format
         # Silvan: this can be a somewhat surprising fact if one tries to figure
         # out why the given outfile is changed.

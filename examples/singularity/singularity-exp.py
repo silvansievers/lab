@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 Example experiment for running Singularity planner images.
@@ -17,7 +16,6 @@ images to a local filesystem (e.g., /tmp/) before running experiments.
 
 import os
 import platform
-import subprocess
 
 from downward import suites
 from downward.reports.absolute import AbsoluteReport
@@ -64,10 +62,11 @@ else:
 ATTRIBUTES = [
     "cost",
     "coverage",
-    "run_dir",
-    "total_time",
-    "singularity_runtime",
     "error",
+    "g_values_over_time",
+    "run_dir",
+    "singularity_runtime",
+    "total_time",
 ]
 
 exp = Experiment(environment=ENVIRONMENT)
@@ -116,6 +115,5 @@ for planner, _ in IMAGES:
 
 report = os.path.join(exp.eval_dir, "{}.html".format(exp.name))
 exp.add_report(BaseReport(attributes=ATTRIBUTES), outfile=report)
-exp.add_step("open-report", subprocess.call, ["xdg-open", report])
 
 exp.run_steps()

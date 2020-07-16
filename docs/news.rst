@@ -1,6 +1,41 @@
 News
 ====
 
+v6.1 (unreleased)
+-----------------
+
+Lab
+^^^
+* Separate tests for Singularity and FF example experiments from other tests (Jendrik Seipp).
+* Skip ``cached_revision`` doctests if ``DOWNWARD_REVISION_CACHE`` variable is not set (Jendrik Seipp).
+* Add ``.github/CONTRIBUTING.md`` file (Jendrik Seipp).
+
+Downward Lab
+^^^^^^^^^^^^
+* Print number of tasks above and below separator lines in scatter plots (Jendrik Seipp).
+* Ignore tasks for which runs have been filtered out in aggregate reports (Jendrik Seipp).
+* Sort bracketed task counts per domain in table reports (Jendrik Seipp).
+* Gracefully handle empty scatter plots (Jendrik Seipp).
+* Make ``score_*`` attributes absolute, i.e., include tasks for which not all algorithms
+  have a value in aggregations (Jendrik Seipp).
+
+
+v6.0 (2020-04-05)
+-----------------
+
+Lab
+^^^
+* Bump minimum Python version to 3.6.
+* Move ``CachedRevision`` from ``downward`` to ``lab`` package (Thomas Keller).
+  Please note that the interface to the class is experimental and may change
+  in the future. Feedback is welcome!
+* Let tests fail if any example experiment produces unexplained errors.
+
+Downward Lab
+^^^^^^^^^^^^
+* No changes.
+
+
 v5.5 (2020-03-13)
 -----------------
 

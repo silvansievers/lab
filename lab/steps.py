@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Lab is a Python package for evaluating algorithms.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,12 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import shutil
 import traceback
 
-from lab import tools
 
-
-class Step(object):
+class Step:
     """
     When the step is executed *args* and *kwargs* will be passed to the
     callable *func*. ::
@@ -43,26 +40,24 @@ class Step(object):
     def __call__(self):
         if self.func is None:
             logging.critical("You cannot run the same step more than once")
-        logging.info("Running step {}: {}".format(self.name, self))
+        logging.info(f"Running step {self.name}: {self}")
         try:
             retval = self.func(*self.args, **self.kwargs)
             # Free memory
             self.func = None
             if retval:
-                logging.critical("An error occured in step {}.".format(self.name))
+                logging.critical(f"An error occured in step {self.name}.")
             return retval
         except (ValueError, TypeError):
             traceback.print_exc()
-            logging.critical("Could not run step {}".format(self))
+            logging.critical(f"Could not run step {self}")
 
     def __str__(self):
         return "{name}({args}{sep}{kwargs})".format(
             name=self._funcname,
             args=", ".join(repr(arg) for arg in self.args),
             sep=", " if self.args and self.kwargs else "",
-            kwargs=", ".join(
-                ["{}={!r}".format(k, v) for (k, v) in sorted(self.kwargs.items())]
-            ),
+            kwargs=", ".join([f"{k}={v!r}" for (k, v) in sorted(self.kwargs.items())]),
         )
 
 
@@ -70,7 +65,7 @@ def _get_step_index(steps, step_name):
     for index, step in enumerate(steps):
         if step.name == step_name:
             return index
-    logging.critical('There is no step called "{}"'.format(step_name))
+    logging.critical(f'There is no step called "{step_name}"')
 
 
 def get_step(steps, step_name):
@@ -79,15 +74,14 @@ def get_step(steps, step_name):
         try:
             return steps[int(step_name) - 1]
         except IndexError:
-            logging.critical("There is no step number {}".format(step_name))
+            logging.critical(f"There is no step number {step_name}")
     return steps[_get_step_index(steps, step_name)]
 
 
 def get_steps_text(steps):
     # Use width 0 if no steps have been added.
     name_width = min(max([len(step.name) for step in steps] + [0]), 50)
-    terminal_width, _terminal_height = tools.get_terminal_size()
-    terminal_width = terminal_width or 80
+    terminal_width = shutil.get_terminal_size().columns
     lines = ["Available steps:", "================"]
     for number, step in enumerate(steps, start=1):
         line = " ".join([str(number).rjust(2), step.name.ljust(name_width)])

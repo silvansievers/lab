@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Lab is a Python package for evaluating algorithms.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -57,21 +55,25 @@ import re
 from lab import tools
 
 
-class _Pattern(object):
+def _get_pattern_flags(s):
+    flags = 0
+    for char in s:
+        try:
+            flags |= getattr(re, char)
+        except AttributeError:
+            logging.critical(f"Unknown pattern flag: {char}")
+    return flags
+
+
+class _Pattern:
     def __init__(self, attribute, regex, required, type_, flags):
         self.attribute = attribute
         self.type_ = type_
         self.required = required
         self.group = 1
 
-        flag = 0
-        for char in flags:
-            try:
-                flag |= getattr(re, char)
-            except AttributeError:
-                logging.critical("Unknown pattern flag: {}".format(char))
-
-        self.regex = re.compile(regex, flag)
+        flags = _get_pattern_flags(flags)
+        self.regex = re.compile(regex, flags)
 
     def search(self, content, filename):
         found_props = {}
@@ -88,14 +90,14 @@ class _Pattern(object):
                 value = self.type_(value)
                 found_props[self.attribute] = value
         elif self.required:
-            logging.error('Pattern "{}" not found in {}'.format(self, filename))
+            logging.error(f'Pattern "{self}" not found in {filename}')
         return found_props
 
     def __str__(self):
         return self.regex.pattern
 
 
-class _FileParser(object):
+class _FileParser:
     """
     Private class that parses a given file according to the added patterns
     and functions.
@@ -109,7 +111,7 @@ class _FileParser(object):
 
     def load_file(self, filename):
         self.filename = filename
-        with open(filename, "r") as f:
+        with open(filename) as f:
             self.content = f.read()
 
     def add_pattern(self, pattern):
@@ -131,7 +133,7 @@ class _FileParser(object):
             function(self.content, props)
 
 
-class Parser(object):
+class Parser:
     """
     Parse files in the current directory and write results into the
     run's ``properties`` file.
@@ -155,7 +157,7 @@ class Parser(object):
             properties[attribute] = type(match.group(1))
 
         *flags* must be a string of Python regular expression flags (see
-        https://docs.python.org/2/library/re.html). E.g., ``flags='M'``
+        https://docs.python.org/3/library/re.html). E.g., ``flags="M"``
         lets "^" and "$" match at the beginning and end of each line,
         respectively.
 
@@ -189,12 +191,12 @@ class Parser(object):
 
         >>> import re
         >>> from lab.parser import Parser
-        >>> # Example content: f=14, f=12, f=10
-        >>> def find_f_values(content, props):
-        ...     props['f_values'] = re.findall(r'f=(\d+)', content)
+        >>> def parse_states_over_time(content, props):
+        ...     matches = re.findall(r"(.+)s: (\d+) states\n", content)
+        ...     props["states_over_time"] = [(float(t), int(s)) for t, s in matches]
         ...
         >>> parser = Parser()
-        >>> parser.add_function(find_f_values)
+        >>> parser.add_function(parse_states_over_time)
 
         You can use ``props.add_unexplained_error("message")`` when your
         parsing function detects that something went wrong during the
@@ -218,7 +220,7 @@ class Parser(object):
             path = os.path.join(run_dir, filename)
             try:
                 file_parser.load_file(path)
-            except IOError as err:
+            except OSError as err:
                 if err.errno == errno.ENOENT:
                     logging.info(
                         'File "{path}" is missing and thus not parsed.'.format(
