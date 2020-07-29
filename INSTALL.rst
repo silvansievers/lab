@@ -26,6 +26,10 @@ for different papers) without conflicts::
     pip install -U pip wheel
     pip install lab  # or preferably a specific version with lab==x.y
 
+    # Store installed packages and exact versions for reproducibility.
+    # Ignore pkg-resources package (https://github.com/pypa/pip/issues/4022).
+    pip freeze | grep -v "pkg-resources" > requirements.txt
+
 If you want to install the latest development version and/or need to
 change Lab itself, you can clone the Lab repo and install it in the
 virtual environment::
