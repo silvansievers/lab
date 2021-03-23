@@ -1,18 +1,4 @@
-# Lab is a Python package for evaluating algorithms.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+import functools
 import hashlib
 import logging
 import os.path
@@ -28,20 +14,15 @@ MERCURIAL = "hg"
 VERSION_CONTROL_SYSTEMS = [GIT, MERCURIAL]
 
 
-_ID_CACHE = {}
-
-
+@functools.lru_cache(maxsize=None)
 def _get_id(cmd):
-    cmd = tuple(cmd)
-    if cmd not in _ID_CACHE:
-        p = subprocess.run(cmd, stdout=subprocess.PIPE)
-        try:
-            p.check_returncode()
-        except subprocess.CalledProcessError as err:
-            logging.critical(f"{err} Please check path and revision.")
-        else:
-            _ID_CACHE[cmd] = tools.get_string(p.stdout).strip()
-    return _ID_CACHE[cmd]
+    p = subprocess.run(cmd, stdout=subprocess.PIPE)
+    try:
+        p.check_returncode()
+    except subprocess.CalledProcessError as err:
+        logging.critical(f"{err} Please check path and revision.")
+    else:
+        return tools.get_string(p.stdout).strip()
 
 
 def hg_id(repo, args=None, rev=None):
@@ -49,7 +30,7 @@ def hg_id(repo, args=None, rev=None):
     if rev:
         args.extend(["-r", str(rev)])
     cmd = ["hg", "id", "--repository", repo] + args
-    return _get_id(cmd)
+    return _get_id(tuple(cmd))
 
 
 def git_id(repo, args=None, rev=None):
@@ -61,9 +42,8 @@ def git_id(repo, args=None, rev=None):
         "--git-dir",
         os.path.join(repo, ".git"),
         "rev-parse",
-        "--short",
     ] + args
-    return _get_id(cmd)
+    return _get_id(tuple(cmd))
 
 
 def _raise_unknown_vcs_error(vcs):
@@ -79,10 +59,10 @@ def get_version_control_system(repo):
     if len(vcs) == 1:
         return vcs[0]
     else:
+        dirs = ", ".join(f".{x}" for x in VERSION_CONTROL_SYSTEMS)
         logging.critical(
-            "Repo {} must contain exactly one of the following subdirectories: {}".format(
-                repo, ", ".join(f".{x}" for x in VERSION_CONTROL_SYSTEMS)
-            )
+            f"Repo {repo} must contain exactly one of the following "
+            f"subdirectories: {dirs}"
         )
 
 
@@ -90,16 +70,6 @@ def get_global_rev(repo, rev=None):
     vcs = get_version_control_system(repo)
     if vcs == MERCURIAL:
         return hg_id(repo, args=["-i"], rev=rev)
-    elif vcs == GIT:
-        return git_id(repo, rev=rev)
-    else:
-        _raise_unknown_vcs_error(vcs)
-
-
-def get_rev_id(repo, rev=None):
-    vcs = get_version_control_system(repo)
-    if vcs == MERCURIAL:
-        return hg_id(repo, rev=rev)
     elif vcs == GIT:
         return git_id(repo, rev=rev)
     else:
@@ -148,7 +118,7 @@ class CachedRevision:
         ...     vcs = get_version_control_system(repo)
         ...     rev = "default" if vcs == MERCURIAL else "main"
         ...     cr = CachedRevision(repo, rev, ["./build.py"], exclude=["experiments"])
-        ...     #cr.cache(revision_cache)  # Uncomment to actually cache the code.
+        ...     # cr.cache(revision_cache)  # Uncomment to actually cache the code.
 
         You can now copy the cached repo to your experiment:
 
@@ -165,7 +135,6 @@ class CachedRevision:
         self.build_cmd = build_cmd
         self.local_rev = rev
         self.global_rev = get_global_rev(repo, rev)
-        self.summary = get_rev_id(self.repo, rev)
         self.path = None
         self.exclude = exclude or []
         self.name = self._compute_hashed_name()
@@ -177,18 +146,16 @@ class CachedRevision:
         return hash(self.name)
 
     def _compute_hashed_name(self):
-        return "{}_{}".format(
-            self.global_rev, _compute_md5_hash(self.build_cmd + self.exclude)
-        )
+        return f"{self.global_rev}_{_compute_md5_hash(self.build_cmd + self.exclude)}"
 
     def cache(self, revision_cache):
         self.path = os.path.join(revision_cache, self.name)
         if os.path.exists(self.path):
-            logging.info('Revision is already cached: "%s"' % self.path)
+            logging.info(f'Revision is already cached: "{self.path}"')
             if not os.path.exists(self._get_sentinel_file()):
                 logging.critical(
-                    "The build for the cached revision at {} is corrupted. "
-                    "Please delete it and try again.".format(self.path)
+                    f"The build for the cached revision at {self.path} is corrupted. "
+                    f"Please delete it and try again."
                 )
         else:
             tools.makedirs(self.path)

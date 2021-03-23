@@ -1,18 +1,3 @@
-# Lab is a Python package for evaluating algorithms.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import logging
 import shutil
 import traceback
@@ -53,12 +38,11 @@ class Step:
             logging.critical(f"Could not run step {self}")
 
     def __str__(self):
-        return "{name}({args}{sep}{kwargs})".format(
-            name=self._funcname,
-            args=", ".join(repr(arg) for arg in self.args),
-            sep=", " if self.args and self.kwargs else "",
-            kwargs=", ".join([f"{k}={v!r}" for (k, v) in sorted(self.kwargs.items())]),
-        )
+        name = self._funcname
+        args = ", ".join(repr(arg) for arg in self.args)
+        sep = ", " if self.args and self.kwargs else ""
+        kwargs = ", ".join([f"{k}={v!r}" for (k, v) in sorted(self.kwargs.items())])
+        return f"{name}({args}{sep}{kwargs})"
 
 
 def _get_step_index(steps, step_name):

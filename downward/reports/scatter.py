@@ -1,19 +1,3 @@
-# Downward Lab uses the Lab package to conduct experiments with the
-# Fast Downward planning system.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 from collections import defaultdict
 import itertools
 import logging
@@ -72,35 +56,37 @@ class ScatterPlotReport(PlanningReport):
         >>> def domain_as_category(run1, run2):
         ...     # run2['domain'] has the same value, because we always
         ...     # compare two runs of the same problem.
-        ...     return run1['domain']
+        ...     return run1["domain"]
 
         Example grouping by difficulty:
 
         >>> def improvement(run1, run2):
-        ...     time1 = run1.get('search_time', 1800)
-        ...     time2 = run2.get('search_time', 1800)
+        ...     time1 = run1.get("search_time", 1800)
+        ...     time2 = run2.get("search_time", 1800)
         ...     if time1 > time2:
-        ...         return 'better'
+        ...         return "better"
         ...     if time1 == time2:
-        ...         return 'equal'
-        ...     return 'worse'
+        ...         return "equal"
+        ...     return "worse"
 
         >>> from downward.experiment import FastDownwardExperiment
         >>> exp = FastDownwardExperiment()
-        >>> exp.add_report(ScatterPlotReport(
-        ...     attributes=['search_time'],
-        ...     get_category=improvement))
+        >>> exp.add_report(
+        ...     ScatterPlotReport(attributes=["search_time"], get_category=improvement)
+        ... )
 
         Example comparing the number of expanded states for two
         algorithms:
 
-        >>> exp.add_report(ScatterPlotReport(
+        >>> exp.add_report(
+        ...     ScatterPlotReport(
         ...         attributes=["expansions_until_last_jump"],
         ...         filter_algorithm=["algorithm-1", "algorithm-2"],
         ...         get_category=domain_as_category,
         ...         format="png",  # Use "tex" for pgfplots output.
-        ...         ),
-        ...     name="scatterplot-expansions")
+        ...     ),
+        ...     name="scatterplot-expansions",
+        ... )
 
         The inherited *format* parameter can be set to 'png' (default),
         'eps', 'pdf', 'pgf' (needs matplotlib 1.2) or 'tex'. For the
@@ -122,25 +108,25 @@ class ScatterPlotReport(PlanningReport):
 
         >>> from downward.reports.scatter import ScatterPlotReport
         >>> matplotlib_options = {
-        ...     'font.family': 'serif',
-        ...     'font.weight': 'normal',
+        ...     "font.family": "serif",
+        ...     "font.weight": "normal",
         ...     # Used if more specific sizes not set.
-        ...     'font.size': 20,
-        ...     'axes.labelsize': 20,
-        ...     'axes.titlesize': 30,
-        ...     'legend.fontsize': 22,
-        ...     'xtick.labelsize': 10,
-        ...     'ytick.labelsize': 10,
-        ...     'lines.markersize': 10,
-        ...     'lines.markeredgewidth': 0.25,
-        ...     'lines.linewidth': 1,
+        ...     "font.size": 20,
+        ...     "axes.labelsize": 20,
+        ...     "axes.titlesize": 30,
+        ...     "legend.fontsize": 22,
+        ...     "xtick.labelsize": 10,
+        ...     "ytick.labelsize": 10,
+        ...     "lines.markersize": 10,
+        ...     "lines.markeredgewidth": 0.25,
+        ...     "lines.linewidth": 1,
         ...     # Width and height in inches.
-        ...     'figure.figsize': [8, 8],
-        ...     'savefig.dpi': 100,
+        ...     "figure.figsize": [8, 8],
+        ...     "savefig.dpi": 100,
         ... }
         >>> report = ScatterPlotReport(
-        ...     attributes=['initial_h_value'],
-        ...     matplotlib_options=matplotlib_options)
+        ...     attributes=["initial_h_value"], matplotlib_options=matplotlib_options
+        ... )
 
         You can see the full list of matplotlib options and their
         defaults by executing ::
@@ -386,7 +372,7 @@ class ScatterPlotReport(PlanningReport):
     def write(self):
         if not len(self.algorithms) == 2:
             logging.critical(
-                "Scatter plots need exactly 2 algorithms: %s" % self.algorithms
+                f"Scatter plots need exactly 2 algorithms: {self.algorithms}"
             )
         suffix = "." + self.output_format
         # Silvan: this can be a somewhat surprising fact if one tries to figure

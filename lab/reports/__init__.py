@@ -1,18 +1,3 @@
-# Lab is a Python package for evaluating algorithms.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
 Module that permits generating reports by reading properties files
 """
@@ -161,9 +146,10 @@ class Attribute(str):
         The ``downward`` package automatically uses appropriate
         settings for most attributes.
 
-        >>> avg_h = Attribute('avg_h', min_wins=False)
+        >>> avg_h = Attribute("avg_h", min_wins=False)
         >>> abstraction_done = Attribute(
-        ...     'abstraction_done', absolute=True, min_wins=False)
+        ...     "abstraction_done", absolute=True, min_wins=False
+        ... )
 
         """
         self.absolute = absolute
@@ -202,7 +188,7 @@ class Report:
         your report. If omitted, use all numerical attributes. Globbing
         characters * and ? are allowed. Example:
 
-        >>> report = Report(attributes=['coverage', 'translator_*'])
+        >>> report = Report(attributes=["coverage", "translator_*"])
 
         When a report is made, both the available and the selected
         attributes are printed on the commandline.
@@ -233,7 +219,7 @@ class Report:
 
         Include only the "cost" attribute in a LaTeX report:
 
-        >>> report = Report(attributes=['cost'], format='tex')
+        >>> report = Report(attributes=["cost"], format="tex")
 
         Only include successful runs in the report:
 
@@ -243,48 +229,38 @@ class Report:
         at most 100:
 
         >>> def low_init_h(run):
-        ...     return run['initial_h_value'] <= 100
+        ...     return run["initial_h_value"] <= 100
         >>> report = Report(filter=low_init_h)
 
         Only include runs from "blocks" and "barman" with a timeout:
 
-        >>> report = Report(
-        ...     filter_domain=['blocks', 'barman'],
-        ...     filter_search_timeout=1)
+        >>> report = Report(filter_domain=["blocks", "barman"], filter_search_timeout=1)
 
         Add a new attribute:
 
         >>> def add_expansions_per_time(run):
-        ...     expansions = run.get('expansions')
-        ...     time = run.get('search_time')
+        ...     expansions = run.get("expansions")
+        ...     time = run.get("search_time")
         ...     if expansions is not None and time:
-        ...         run['expansions_per_time'] = expansions / time
+        ...         run["expansions_per_time"] = expansions / time
         ...     return run
         >>> report = Report(
-        ...     attributes=['expansions_per_time'],
-        ...     filter=[add_expansions_per_time])
+        ...     attributes=["expansions_per_time"], filter=[add_expansions_per_time]
+        ... )
 
         Rename, filter and sort algorithms:
 
         >>> def rename_algorithms(run):
-        ...     name = run['algorithm']
-        ...     paper_names = {
-        ...         'lama11': 'LAMA 2011', 'fdss_sat1': 'FDSS 1'}
-        ...     run['algorithm'] = paper_names[name]
+        ...     name = run["algorithm"]
+        ...     paper_names = {"lama11": "LAMA 2011", "fdss_sat1": "FDSS 1"}
+        ...     run["algorithm"] = paper_names[name]
         ...     return run
 
         >>> # We want LAMA 2011 to be the leftmost column.
         >>> # filter_* filters are evaluated last, so we use the updated
         >>> # algorithm names here.
-        >>> algorithms = ['LAMA 2011', 'FDSS 1']
-        >>> report = Report(
-        ...     filter=rename_algorithms, filter_algorithm=algorithms)
-
-        Compute a new attribute from multiple runs (from
-        `examples/showcase-options.py`):
-
-        .. literalinclude:: ../examples/showcase-options.py
-           :pyobject: QualityFilters
+        >>> algorithms = ["LAMA 2011", "FDSS 1"]
+        >>> report = Report(filter=rename_algorithms, filter_algorithm=algorithms)
 
         """
         self.attributes = tools.make_list(attributes)
@@ -330,7 +306,7 @@ class Report:
         self.attributes = self._glob_attributes(self.attributes)
 
         if not self.attributes:
-            logging.info("Available attributes: %s" % ", ".join(self.all_attributes))
+            logging.info(f"Available attributes: {', '.join(self.all_attributes)}")
             logging.info("Using all numerical attributes.")
             self.attributes = self._get_numerical_attributes()
 
@@ -360,7 +336,7 @@ class Report:
             matches = fnmatch.filter(self.all_attributes, attr)
             if not matches:
                 logging.warning(
-                    'There is no attribute "%s" in the properties file.' % attr
+                    f'There is no attribute "{attr}" in the properties file.'
                 )
             # Use the attribute options from the pattern for all matches, but
             # don't try to guess options for attributes that appear in the list.
@@ -443,7 +419,7 @@ class Report:
         content = self.get_text()
         tools.makedirs(os.path.dirname(self.outfile))
         tools.write_file(self.outfile, content)
-        logging.info("Wrote file://%s" % self.outfile)
+        logging.info(f"Wrote file://{self.outfile}")
 
     def _get_type(self, attribute):
         for run in self.props.values():
@@ -467,7 +443,7 @@ class Report:
     def _load_data(self):
         props_file = os.path.join(self.eval_dir, "properties")
         if not os.path.exists(props_file):
-            logging.critical("Properties file not found at %s" % props_file)
+            logging.critical(f"Properties file not found at {props_file}")
 
         logging.info("Reading properties file")
         self.props = tools.Properties(filename=props_file)
@@ -496,7 +472,7 @@ class CellFormatter:
         if self.count:
             result = f"{result} ({self.count})"
         if self.bold:
-            result = "**%s**" % result
+            result = f"**{result}**"
         return result
 
 
@@ -519,12 +495,12 @@ class Table(collections.defaultdict):
 
         Numbers are rounded to *digits* positions after the decimal point.
 
-        >>> t = Table(title='expansions')
-        >>> t.add_cell('prob1', 'cfg1', 10)
-        >>> t.add_cell('prob1', 'cfg2', 20)
-        >>> t.add_row('prob2', {'cfg1': 15, 'cfg2': 25})
+        >>> t = Table(title="expansions")
+        >>> t.add_cell("prob1", "cfg1", 10)
+        >>> t.add_cell("prob1", "cfg2", 20)
+        >>> t.add_row("prob2", {"cfg1": 15, "cfg2": 25})
         >>> def remove_quotes(s):
-        ...     return s.replace('""', '')
+        ...     return s.replace('""', "")
         >>> print(remove_quotes(str(t)))
         || expansions |  cfg1 |  cfg2 |
          | prob1 |  10 |  20 |
@@ -533,17 +509,17 @@ class Table(collections.defaultdict):
         ['prob1', 'prob2']
         >>> t.col_names
         ['cfg1', 'cfg2']
-        >>> t.get_row('prob2')
+        >>> t.get_row("prob2")
         [15, 25]
-        >>> t.get_columns() == {'cfg1': [10, 15], 'cfg2': [20, 25]}
+        >>> t.get_columns() == {"cfg1": [10, 15], "cfg2": [20, 25]}
         True
-        >>> t.add_summary_function('SUM', sum)
+        >>> t.add_summary_function("SUM", sum)
         >>> print(remove_quotes(str(t)))
         || expansions |  cfg1 |  cfg2 |
          | prob1 |  10 |  20 |
          | prob2 |  15 |  25 |
          | **SUM** |  25 |  45 |
-        >>> t.set_column_order(['cfg2', 'cfg1'])
+        >>> t.set_column_order(["cfg2", "cfg1"])
         >>> print(remove_quotes(str(t)))
         || expansions |  cfg2 |  cfg1 |
          | prob1 |  20 |  10 |
@@ -731,6 +707,18 @@ class Table(collections.defaultdict):
         for dynamic_data_module in self.dynamic_data_modules:
             dynamic_data_module.format(self, cells)
 
+    def _format_value(self, value):
+        if isinstance(value, float):
+            return f"{value:.{self.digits}f}"
+        else:
+            result = str(value)
+
+        # Only escape text if it doesn't contain LaTeX or HTML markup.
+        if "''" in result:
+            return result
+        else:
+            return markup.escape(result)
+
     def _format_row(self, row_name, row):
         """Format all entries in **row** (in place)."""
         if row_name == self.header_row:
@@ -743,23 +731,35 @@ class Table(collections.defaultdict):
                 row[col_name] = value
             return
 
-        # Get the slice of the row that should be formated (i.e. the data columns).
-        # Note that there might be other columns (e.g. added by dynamic data
-        # modules) that should not be formated.
+        # Get the slice of the row that should be formatted (i.e., the data columns).
+        # Note that there might be other columns (e.g., added by dynamic data
+        # modules) that should not be formatted.
         row_slice = {col_name: row.get(col_name) for col_name in self.col_names}
 
         min_wins = self.get_min_wins(row_name)
         highlight = min_wins is not None
         colored = self.colored and highlight
-        colors = tools.get_colors(row_slice, min_wins) if colored else None
+        if colored:
+
+            def try_to_round(v):
+                try:
+                    return round(v, self.digits)
+                except TypeError:
+                    return v
+
+            rounded_row_slice = {
+                col: try_to_round(val) for col, val in row_slice.items()
+            }
+            colors = tools.get_colors(rounded_row_slice, min_wins)
 
         if highlight:
             min_value, max_value = tools.get_min_max(row_slice.values())
         else:
             min_value, max_value = None, None
 
-        def is_close(a, b, rel_tol=1e-09, abs_tol=0.0):
-            return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+        def is_close(a, b):
+            # Highlight based on precision visible in table, not actual values.
+            return self._format_value(a) == self._format_value(b)
 
         for col_name, value in row.items():
             color = None
@@ -799,24 +799,12 @@ class Table(collections.defaultdict):
 
         justify_right = isinstance(value, (float, int))
 
-        def format_value(value):
-            if isinstance(value, float):
-                return "{0:.{1}f}".format(value, self.digits)
-            else:
-                result = str(value)
-
-            # Only escape text if it doesn't contain LaTeX or HTML markup.
-            if "''" in result:
-                return result
-            else:
-                return markup.escape(result)
-
-        value_text = format_value(value)
+        value_text = self._format_value(value)
 
         if color is not None:
             value_text = f"{{{value_text}|color:{color}}}"
         if bold:
-            value_text = "**%s**" % value_text
+            value_text = f"**{value_text}**"
         if justify_right:
             value_text = " " + value_text
         return value_text
@@ -839,14 +827,14 @@ class Table(collections.defaultdict):
 
     def _get_header_markup(self, row_name, row):
         """Return the txt2tags table markup for the headers."""
-        return self._get_row_markup(row_name, row, template="|| %s |")
+        return self._get_row_markup(row_name, row, template="|| {} |")
 
-    def _get_row_markup(self, row_name, row, template=" | %s |"):
+    def _get_row_markup(self, row_name, row, template=" | {} |"):
         """Return the txt2tags table markup for one row."""
         formatted_cells = []
         for col_name in self._get_printable_column_order():
             formatted_cells.append(row.get(col_name, ""))
-        return template % " | ".join(formatted_cells)
+        return template.format(" | ".join(formatted_cells))
 
     def __str__(self):
         """Return the txt2tags markup for this table."""

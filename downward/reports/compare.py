@@ -1,19 +1,3 @@
-# Downward Lab uses the Lab package to conduct experiments with the
-# Fast Downward planning system.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import logging
 
 from downward.reports.absolute import AbsoluteReport
@@ -54,10 +38,8 @@ class ComparativeReport(AbsoluteReport):
 
         >>> from downward.experiment import FastDownwardExperiment
         >>> exp = FastDownwardExperiment()
-        >>> algorithm_pairs = [
-        ...     ('default-lmcut', 'issue123-lmcut', 'Diff lmcut')]
-        >>> exp.add_report(ComparativeReport(
-        ...     algorithm_pairs, attributes=['coverage']))
+        >>> algorithm_pairs = [("default-lmcut", "issue123-lmcut", "Diff lmcut")]
+        >>> exp.add_report(ComparativeReport(algorithm_pairs, attributes=["coverage"]))
 
         Example output:
 
@@ -131,7 +113,7 @@ class DiffColumnsModule(reports.DynamicDataModule):
             col_name = None
             while col_name is None or col_name in diff_column_names:
                 uniq_count += 1
-                col_name = "diff_column_%s" % uniq_count
+                col_name = f"diff_column_{uniq_count}"
             diff_column_names.add(col_name)
             self.header_names.append(((tup[0], tup[1]), diff_name, col_name))
         self.summary_functions = summary_functions

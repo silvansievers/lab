@@ -6,8 +6,8 @@ import sys
 _, VERSION, CHANGELOG, LIST = sys.argv
 
 REGEX = fr"""
-News\n
-====\n
+Changelog\n
+=========\n
 \n
 (v{VERSION}\ \(\d\d\d\d-\d\d-\d\d\))\n
 -----------------\n
@@ -37,7 +37,7 @@ def check(name, text):
     print("*" * 60)
     print(text)
     print("*" * 60)
-    response = input("Accept this %s (Y/n)? " % name).strip().lower()
+    response = input(f"Accept this {name} (Y/n)? ").strip().lower()
     if response and response != "y":
         sys.exit(1)
 

@@ -1,18 +1,3 @@
-# Lab is a Python package for evaluating algorithms.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import logging
 import multiprocessing
 import os
@@ -165,18 +150,17 @@ class GridEnvironment(Environment):
         pass
 
     def _get_job_name(self, step):
-        return "%s%02d-%s" % (
-            _get_job_prefix(self.exp.name),
-            self.exp.steps.index(step) + 1,
-            step.name,
+        return (
+            f"{_get_job_prefix(self.exp.name)}"
+            f"{self.exp.steps.index(step) + 1:02d}-{step.name}"
         )
 
     def _get_num_runs(self):
         num_runs = len(self.exp.runs)
         if num_runs > self.MAX_TASKS:
             logging.critical(
-                "You are trying to submit a job with %d tasks, "
-                "but only %d are allowed." % (num_runs, self.MAX_TASKS)
+                f"You are trying to submit a job with {num_runs} tasks, "
+                f"but only {self.MAX_TASKS} are allowed."
             )
         return num_runs
 
@@ -222,9 +206,7 @@ class GridEnvironment(Environment):
         return self._get_step_job_body(step)
 
     def _get_job(self, step, is_last):
-        return "{}\n\n{}".format(
-            self._get_job_header(step, is_last), self._get_job_body(step)
-        )
+        return f"{self._get_job_header(step, is_last)}\n\n{self._get_job_body(step)}"
 
     def write_main_script(self):
         # The main script is written by the run_steps() method.
@@ -242,9 +224,9 @@ class GridEnvironment(Environment):
         job_dir = self.exp.path + "-grid-steps"
         if os.path.exists(job_dir):
             tools.confirm_or_abort(
-                'The path "%s" already exists, so the experiment has '
-                "already been submitted. Are you sure you want to "
-                "delete the grid-steps and submit it again?" % job_dir
+                f'The path "{job_dir}" already exists, so the experiment has '
+                f"already been submitted. Are you sure you want to "
+                f"delete the grid-steps and submit it again?"
             )
             tools.remove_path(job_dir)
 
@@ -255,8 +237,8 @@ class GridEnvironment(Environment):
         # Remove eval dir if it exists.
         if os.path.exists(self.exp.eval_dir):
             tools.confirm_or_abort(
-                'The evaluation directory "%s" already exists. '
-                "Do you want to remove it?" % self.exp.eval_dir
+                f'The evaluation directory "{self.exp.eval_dir}" already exists. '
+                f"Do you want to remove it?"
             )
             tools.remove_path(self.exp.eval_dir)
 
@@ -344,7 +326,8 @@ class SlurmEnvironment(GridEnvironment):
         >>> env = BaselSlurmEnvironment(
         ...     partition="infai_1",
         ...     memory_per_cpu="3G",
-        ...     extra_options='#SBATCH --cpus-per-task=4')
+        ...     extra_options="#SBATCH --cpus-per-task=4",
+        ... )
 
         Example that reserves 12 GiB of memory on infai_2:
 
@@ -353,7 +336,8 @@ class SlurmEnvironment(GridEnvironment):
         >>> env = BaselSlurmEnvironment(
         ...     partition="infai_2",
         ...     memory_per_cpu="6G",
-        ...     extra_options='#SBATCH --cpus-per-task=2')
+        ...     extra_options="#SBATCH --cpus-per-task=2",
+        ... )
 
         Use *export* to specify a list of environment variables that
         should be exported from the login node to the compute nodes
@@ -440,11 +424,11 @@ class SlurmEnvironment(GridEnvironment):
         if dependency:
             submit.extend(["-d", "afterany:" + dependency, "--kill-on-invalid-dep=yes"])
         submit.append(job_file)
-        logging.info("Executing %s" % (" ".join(submit)))
+        logging.info(f"Executing {' '.join(submit)}")
         out = subprocess.check_output(submit, cwd=job_dir).decode()
         logging.info(f"Output: {out.strip()}")
         match = re.match(r"Submitted batch job (\d*)", out)
-        assert match, "Submitting job with sbatch failed: '{out}'".format(**locals())
+        assert match, f"Submitting job with sbatch failed: '{out}'"
         return match.group(1)
 
 

@@ -1,11 +1,9 @@
 import lab
 from lab import reports
 from lab.calls.call import Call
-from lab.experiment import ARGPARSER
 from lab.environments import LapktSlurmEnvironment
 
 
-ARGPARSER.epilog
 reports.Table.add_col
 reports.Table.get_row
 reports.Table.set_row_order

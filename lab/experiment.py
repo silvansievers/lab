@@ -1,18 +1,3 @@
-# Lab is a Python package for evaluating algorithms.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """Main module for creating experiments."""
 
 from collections import OrderedDict
@@ -71,23 +56,23 @@ def _get_default_experiment_dir():
 def get_run_dir(task_id):
     lower = ((task_id - 1) // SHARD_SIZE) * SHARD_SIZE + 1
     upper = ((task_id + SHARD_SIZE - 1) // SHARD_SIZE) * SHARD_SIZE
-    return "runs-{lower:0>5}-{upper:0>5}/{task_id:0>5}".format(**locals())
+    return f"runs-{lower:0>5}-{upper:0>5}/{task_id:0>5}"
 
 
 def _check_name(name, typ, extra_chars=""):
     if not isinstance(name, str):
-        logging.critical("Name for {typ} must be a string: {name}".format(**locals()))
+        logging.critical(f"Name for {typ} must be a string: {name}")
     if not name:
-        logging.critical("Name for {typ} must not be empty".format(**locals()))
+        logging.critical(f"Name for {typ} must not be empty")
     alpha_num_name = name
     for c in extra_chars:
         alpha_num_name = alpha_num_name.replace(c, "")
     if not name[0].isalpha():
-        logging.critical("Name for {typ} must start with a letter.".format(**locals()))
+        logging.critical(f"Name for {typ} must start with a letter.")
     if not alpha_num_name.isalnum():
         logging.critical(
-            "Name for {typ} may only use characters from"
-            " [A-Z], [a-z], [0-9], [{extra_chars}]: {name}".format(**locals())
+            f"Name for {typ} may only use characters from"
+            f" [A-Z], [a-z], [0-9], [{extra_chars}]: {name}"
         )
 
 
@@ -116,17 +101,17 @@ class _Buildable:
         These can be used later, for example, in reports. ::
 
         >>> exp = Experiment()
-        >>> exp.set_property('suite', ['gripper', 'grid'])
+        >>> exp.set_property("suite", ["gripper", "grid"])
         >>> run = exp.add_run()
-        >>> run.set_property('domain', 'gripper')
-        >>> run.set_property('problem', 'prob01.pddl')
+        >>> run.set_property("domain", "gripper")
+        >>> run.set_property("problem", "prob01.pddl")
 
         Each run must have the property *id* which must be a *unique*
         list of strings. They determine where the results for this run
         will land in the combined properties file. ::
 
-        >>> run.set_property('id', ["algo1", "task1"])
-        >>> run.set_property('id', ["algo2", "domain1", "problem1"])
+        >>> run.set_property("id", ["algo1", "task1"])
+        >>> run.set_property("id", ["algo2", "domain1", "problem1"])
 
         """
         self.properties[name] = value
@@ -151,15 +136,15 @@ class _Buildable:
         Example::
 
         >>> exp = Experiment()
-        >>> exp.add_resource('planner', 'path/to/planner')
+        >>> exp.add_resource("planner", "path/to/planner")
 
         includes my-planner in the experiment directory. You can use
         ``{planner}`` to reference my-planner in a run's commands::
 
         >>> run = exp.add_run()
-        >>> run.add_resource('domain', 'path-to/gripper/domain.pddl')
-        >>> run.add_resource('task', 'path-to/gripper/prob01.pddl')
-        >>> run.add_command('plan', ['{planner}', '{domain}', '{task}'])
+        >>> run.add_resource("domain", "path-to/gripper/domain.pddl")
+        >>> run.add_resource("task", "path-to/gripper/prob01.pddl")
+        >>> run.add_command("plan", ["{planner}", "{domain}", "{task}"])
 
         """
         if dest == "":
@@ -181,8 +166,8 @@ class _Buildable:
 
         >>> exp = Experiment()
         >>> run = exp.add_run()
-        >>> run.add_new_file('learn', 'learn.txt', 'a = 5; b = 2; c = 5')
-        >>> run.add_command('print-trainingset', ['cat', '{learn}'])
+        >>> run.add_new_file("learn", "learn.txt", "a = 5; b = 2; c = 5")
+        >>> run.add_command("print-trainingset", ["cat", "{learn}"])
 
         """
         if name:
@@ -242,16 +227,16 @@ class _Buildable:
         >>> exp = Experiment()
         >>> run = exp.add_run()
         >>> # Add commands to a *specific* run.
-        >>> run.add_command('solver', ['mysolver', 'input-file'], time_limit=60)
+        >>> run.add_command("solver", ["mysolver", "input-file"], time_limit=60)
         >>> # Add a command to *all* runs.
-        >>> exp.add_command('cleanup', ['rm', 'my-temp-file'])
+        >>> exp.add_command("cleanup", ["rm", "my-temp-file"])
 
         Make sure to call all Python programs from the currently active
         Python interpreter, i.e., ``sys.executable``. Otherwise, the
         system Python version might be used instead of the Python version
         from the virtual environment.
 
-        >>> run.add_command('myplanner', [sys.executable, 'planner.py', 'input-file'])
+        >>> run.add_command("myplanner", [sys.executable, "planner.py", "input-file"])
 
         """
         _check_name(name, "command", extra_chars="_-")
@@ -259,9 +244,7 @@ class _Buildable:
             logging.critical(f"Command names must be unique: {name}")
 
         if not isinstance(command, list):
-            logging.critical(
-                "The command for {name} is not a list: {command}".format(**locals())
-            )
+            logging.critical(f"The command for {name} is not a list: {command}")
         if not command:
             logging.critical(f'Command "{name}" must not be empty')
 
@@ -298,7 +281,7 @@ class _Buildable:
         for dest, content, permissions in self.new_files:
             filename = self._get_abs_path(dest)
             tools.makedirs(os.path.dirname(filename))
-            logging.debug('Writing file "%s"' % filename)
+            logging.debug(f'Writing file "{filename}"')
             tools.write_file(filename, content)
             os.chmod(filename, permissions)
 
@@ -330,34 +313,8 @@ class _Buildable:
 class Experiment(_Buildable):
     """Base class for Lab experiments.
 
-    An **experiment** consists of multiple **steps**. Most experiments
-    will have steps for building and executing the experiment:
-
-    >>> exp = Experiment()
-    >>> exp.add_step('build', exp.build)
-    >>> exp.add_step('start', exp.start_runs)
-
-    Moreover, there are usually steps for fetching the results and
-    making reports:
-
-    >>> from lab.reports import Report
-    >>> exp.add_fetcher(name='fetch')
-    >>> exp.add_report(Report(attributes=["error"]))
-
-    When calling :meth:`.start_runs`, all **runs** part of the
-    experiment are executed. You can add runs with the :meth:`.add_run`
-    method. Each run needs a unique ID and at least one **command**:
-
-    >>> for algo in ["algo1", "algo2"]:
-    ...     for value in range(10):
-    ...         run = exp.add_run()
-    ...         run.set_property('id', [algo, str(value)])
-    ...         run.add_command('solve', [algo, str(value)])
-
-    You can pass the names of selected steps to your experiment script
-    or use ``--all`` to execute all steps. At the end of your script,
-    call ``exp.run_steps()`` to parse the commandline and execute the
-    selected steps.
+    See :ref:`concepts` for a description of how Lab experiments are
+    structured.
 
     """
 
@@ -384,7 +341,7 @@ class Experiment(_Buildable):
         path = path or _get_default_experiment_dir()
         self.path = os.path.abspath(path)
         if any(char in self.path for char in (":", ",")):
-            logging.critical("Path contains commas or colons: %s" % self.path)
+            logging.critical(f"Path contains commas or colons: {self.path}")
         self.environment = environment or environments.LocalEnvironment()
         self.environment.exp = self
 
@@ -434,11 +391,11 @@ class Experiment(_Buildable):
         >>> import shutil
         >>> import subprocess
         >>> from lab.experiment import Experiment
-        >>> exp = Experiment('/tmp/myexp')
-        >>> exp.add_step('build', exp.build)
-        >>> exp.add_step('start', exp.start_runs)
-        >>> exp.add_step('rm-eval-dir', shutil.rmtree, exp.eval_dir)
-        >>> exp.add_step('greet', subprocess.call, ['echo', 'Hello'])
+        >>> exp = Experiment("/tmp/myexp")
+        >>> exp.add_step("build", exp.build)
+        >>> exp.add_step("start", exp.start_runs)
+        >>> exp.add_step("rm-eval-dir", shutil.rmtree, exp.eval_dir)
+        >>> exp.add_step("greet", subprocess.call, ["echo", "Hello"])
 
         """
         if not isinstance(name, str):
@@ -476,7 +433,7 @@ class Experiment(_Buildable):
         name = name.replace("-", "_")
         self._check_alias(name)
         if not os.path.isfile(path_to_parser):
-            logging.critical("Parser %s could not be found." % path_to_parser)
+            logging.critical(f"Parser {path_to_parser} could not be found.")
 
         dest = os.path.basename(path_to_parser)
         self.env_vars_relative[name] = dest
@@ -508,7 +465,6 @@ class Experiment(_Buildable):
             logging.info(f"Parsing properties in {total_dirs:d} run directories")
             for index, run_dir in enumerate(run_dirs, start=1):
                 if os.path.exists(os.path.join(run_dir, "properties")):
-                    # print "removing path {}".format(os.path.join(run_dir, 'properties'))
                     tools.remove_path(os.path.join(run_dir, "properties"))
                 loglevel = logging.INFO if index % 100 == 0 else logging.DEBUG
                 logging.log(loglevel, f"Parsing run: {index:6d}/{total_dirs:d}")
@@ -556,27 +512,27 @@ class Experiment(_Buildable):
 
         Example setup:
 
-        >>> exp = Experiment('/tmp/exp')
+        >>> exp = Experiment("/tmp/exp")
 
         Fetch all results and write a single combined properties file
         to the default evaluation directory (this step is added by
         default):
 
-        >>> exp.add_fetcher(name='fetch')
+        >>> exp.add_fetcher(name="fetch")
 
         Merge the results from "other-exp" into this experiment's
         results:
 
-        >>> exp.add_fetcher(src='/path/to/other-exp-eval')
+        >>> exp.add_fetcher(src="/path/to/other-exp-eval")
 
         Fetch only the runs for certain algorithms:
 
-        >>> exp.add_fetcher(filter_algorithm=['algo_1', 'algo_5'])
+        >>> exp.add_fetcher(filter_algorithm=["algo_1", "algo_5"])
 
         """
         src = src or self.path
         dest = dest or self.eval_dir
-        name = name or "fetch-%s" % os.path.basename(src.rstrip("/"))
+        name = name or f"fetch-{os.path.basename(src.rstrip('/'))}"
         self.add_step(name, Fetcher(), src, dest, merge=merge, filter=filter, **kwargs)
 
     def add_report(self, report, name="", eval_dir="", outfile=""):
@@ -624,7 +580,7 @@ class Experiment(_Buildable):
         assert not args.steps or not args.run_all_steps
         if not args.steps and not args.run_all_steps:
             ARGPARSER.print_help()
-            sys.exit(0)
+            return
         # Run all steps if --all is passed.
         steps = [get_step(self.steps, name) for name in args.steps] or self.steps
         # Use LocalEnvironment if the main experiment step is inactive.
@@ -653,7 +609,7 @@ class Experiment(_Buildable):
         if not write_to_disk:
             return
 
-        logging.info('Experiment path: "%s"' % self.path)
+        logging.info(f'Experiment path: "{self.path}"')
         self._remove_experiment_dir()
         tools.makedirs(self.path)
         self.environment.write_main_script()
@@ -680,10 +636,10 @@ class Experiment(_Buildable):
             logging.critical("No runs have been added to the experiment.")
         num_runs = len(self.runs)
         self.set_property("runs", num_runs)
-        logging.info("Building %d runs" % num_runs)
+        logging.info(f"Building {num_runs} runs")
         for index, run in enumerate(self.runs, 1):
             if index % 100 == 0:
-                logging.info("Build run %6d/%d" % (index, num_runs))
+                logging.info(f"Build run {index:6}/{num_runs}")
             for name, (command, kwargs) in self.commands.items():
                 run.add_command(name, command, **kwargs)
             run.build(index)
@@ -734,8 +690,8 @@ class Run(_Buildable):
         doubly_used_vars = set(exp_vars) & set(run_vars)
         if doubly_used_vars:
             logging.critical(
-                "Resource names cannot be shared between experiments "
-                "and runs, they must be unique: {}".format(doubly_used_vars)
+                f"Resource names cannot be shared between experiments "
+                f"and runs, they must be unique: {doubly_used_vars}"
             )
         env_vars = exp_vars
         env_vars.update(run_vars)
@@ -761,7 +717,7 @@ class Run(_Buildable):
                     formatted_value = repr(val)
                 return f"{key}={formatted_value}"
 
-            cmd_string = "[{}]".format(", ".join([format_arg(arg) for arg in cmd]))
+            cmd_string = f"[{', '.join([format_arg(arg) for arg in cmd])}]"
             kwargs_string = ", ".join(
                 format_key_value_pair(key, value)
                 for key, value in sorted(kwargs.items())
@@ -769,7 +725,7 @@ class Run(_Buildable):
             parts = [cmd_string]
             if kwargs_string:
                 parts.append(kwargs_string)
-            return "Call({}, **redirects).wait()\n".format(", ".join(parts))
+            return f"Call({', '.join(parts)}, **redirects).wait()\n"
 
         calls_text = "\n".join(
             make_call(name, cmd, kwargs)

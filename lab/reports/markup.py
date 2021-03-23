@@ -1,18 +1,3 @@
-# Lab is a Python package for evaluating algorithms.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import datetime
 import logging
 
@@ -22,8 +7,7 @@ import txt2tags
 ESCAPE_WORDBREAK = "xWBRx"
 ESCAPE_WHITESPACE = "xWHITESPACEx"
 
-CSS = (
-    """\
+CSS = """\
 <style type="text/css">
     body {
         font-family: Ubuntu, Helvetica, Arial, sans-serif;
@@ -40,8 +24,6 @@ CSS = (
     }
 </style>
 """
-    % globals()
-)
 
 JAVASCRIPT = """\
 <script type="text/javascript">
@@ -104,7 +86,7 @@ document.addEventListener("DOMContentLoaded", show_main_tables);
 
 
 def escape(text):
-    return '""%s""' % text
+    return f'""{text}""'
 
 
 def _get_config(target):

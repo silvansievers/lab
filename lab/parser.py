@@ -1,48 +1,30 @@
-# Lab is a Python package for evaluating algorithms.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
-Parse logs and output files.
+A parser can be any program that analyzes files in the run's directory
+(e.g. ``run.log``) and manipulates the ``properties`` file in the same
+directory.
 
-A parser can be any program that analyzes files in the run's
-directory (e.g. ``run.log``) and manipulates the ``properties``
-file in the same directory.
-
-To make parsing easier, however, you can use the ``Parser`` class. The
-parser ``examples/ff/ff-parser.py`` serves as an example:
+To make parsing easier, however, you can use the ``Parser`` class. Here is
+an example parser for the FF planner:
 
 .. literalinclude:: ../examples/ff/ff-parser.py
+   :caption:
 
-You can add this parser to alls runs by using
-:meth:`add_parser() <lab.experiment.Experiment.add_parser>`:
+You can add this parser to all runs by using :meth:`add_parser()
+<lab.experiment.Experiment.add_parser>`:
 
->>> import os.path
->>> from lab import experiment
->>> exp = experiment.Experiment()
->>> # The path can be absolute or relative to the working directory
->>> # at build time.
->>> parser = os.path.abspath(
-...     os.path.join(__file__, '../../examples/ff/ff-parser.py'))
+>>> from pathlib import Path
+>>> from lab.experiment import Experiment
+>>> exp = Experiment()
+>>> # The path can be absolute or relative to the working directory at build time.
+>>> parser = Path(__file__).resolve().parents[1] / "examples/ff/ff-parser.py"
 >>> exp.add_parser(parser)
 
-All added parsers will be run in the order in which they were added
-after executing the run's commands.
+All added parsers will be run in the order in which they were added after
+executing the run's commands.
 
 If you need to change your parsers and execute them again, use the
-:meth:`~lab.experiment.Experiment.add_parse_again_step` method to
-re-parse your results.
+:meth:`~lab.experiment.Experiment.add_parse_again_step` method to re-parse
+your results.
 
 """
 
@@ -83,8 +65,8 @@ class _Pattern:
                 value = match.group(self.group)
             except IndexError:
                 logging.error(
-                    "Attribute %s not found for pattern %s in "
-                    "file %s" % (self.attribute, self, filename)
+                    f"Attribute {self.attribute} not found for pattern {self} in "
+                    f"file {filename}."
                 )
             else:
                 value = self.type_(value)
@@ -165,7 +147,7 @@ class Parser:
         an error message is printed to stderr.
 
         >>> parser = Parser()
-        >>> parser.add_pattern('facts', r'Facts: (\d+)', type=int)
+        >>> parser.add_pattern("facts", r"Facts: (\d+)", type=int)
 
         """
         if type == bool:
@@ -222,14 +204,10 @@ class Parser:
                 file_parser.load_file(path)
             except OSError as err:
                 if err.errno == errno.ENOENT:
-                    logging.info(
-                        'File "{path}" is missing and thus not parsed.'.format(
-                            **locals()
-                        )
-                    )
+                    logging.info(f'File "{path}" is missing and thus not parsed.')
                     del self.file_parsers[filename]
                 else:
-                    logging.error('Failed to read "{path}": {err}'.format(**locals()))
+                    logging.error(f'Failed to read "{path}": {err}')
 
         for file_parser in self.file_parsers.values():
             self.props.update(file_parser.search_patterns())

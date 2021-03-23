@@ -6,6 +6,7 @@ This experiment demonstrates most of the available options.
 from collections import defaultdict
 import os
 import os.path
+from pathlib import Path
 import platform
 from subprocess import call
 
@@ -20,7 +21,7 @@ from lab.reports import Attribute
 from lab.reports.filter import FilterReport
 
 
-DIR = os.path.dirname(os.path.abspath(__file__))
+DIR = Path(__file__).resolve().parent
 NODE = platform.node()
 REMOTE = NODE.endswith(".scicore.unibas.ch") or NODE.endswith(".cluster.bc2.ch")
 if REMOTE:
@@ -34,24 +35,13 @@ VCS = cached_revision.get_version_control_system(REPO)
 REV = "default" if VCS == cached_revision.MERCURIAL else "main"
 
 
-class QualityFilters(object):
+# See FAQs in docs for how to use the filters.
+class QualityFilters:
     """Compute the IPC quality score.
 
-    The IPC score is computed over the list of runs for each task. Since
-    filters only work on individual runs, we can't compute the score
-    with a single filter, but it is possible by using two filters:
-    *store_costs* saves the list of costs per task in a dictionary
-    whereas *add_quality* uses the stored costs to compute IPC quality
-    scores and adds them to the runs.
-
-    The *add_quality* filter can only be executed after *store_costs*
-    has been executed. Also, both filters require the "cost" attribute
-    to be parsed.
-
     >>> from downward.reports.absolute import AbsoluteReport
-    >>> quality_filters = QualityFilters()
-    >>> report = AbsoluteReport(filter=[quality_filters.store_costs,
-    ...                                 quality_filters.add_quality])
+    >>> filters = QualityFilters()
+    >>> report = AbsoluteReport(filter=[filters.store_costs, filters.add_quality])
 
     """
 
@@ -93,6 +83,7 @@ exp.add_parser(exp.ANYTIME_SEARCH_PARSER)
 exp.add_parser(exp.PLANNER_PARSER)
 
 exp.add_suite(BENCHMARKS_DIR, ["gripper:prob01.pddl", "miconic:s1-0.pddl"])
+exp.add_suite(DIR / ".." / "tests" / "benchmarks", ["blocks", "gripper:p01.sas"])
 exp.add_algorithm(
     "iter-hadd",
     REPO,
@@ -156,7 +147,7 @@ def only_two_algorithms(run):
 
 
 def eval_dir(num):
-    return os.path.join(exp.eval_dir, "test%d" % num)
+    return os.path.join(exp.eval_dir, f"test{num}")
 
 
 exp.add_fetcher(dest=eval_dir(1), name="fetcher-test1", filter=only_two_algorithms)

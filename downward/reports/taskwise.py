@@ -1,19 +1,3 @@
-# Downward Lab uses the Lab package to conduct experiments with the
-# Fast Downward planning system.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import logging
 
 from downward.reports import PlanningReport
@@ -25,14 +9,16 @@ class TaskwiseReport(PlanningReport):
     For each task report all selected attributes in a single row.
 
     If the experiment contains more than one algorithm, use
-    ``filter_algorithm='my_algorithm'`` to select exactly one algorithm
+    ``filter_algorithm=["my_algorithm"]`` to select exactly one algorithm
     for the report.
 
     >>> from downward.experiment import FastDownwardExperiment
     >>> exp = FastDownwardExperiment()
-    >>> exp.add_report(TaskwiseReport(
-    ...     attributes=["expansions", "search_time"],
-    ...     filter_algorithm=["lmcut"]))
+    >>> exp.add_report(
+    ...     TaskwiseReport(
+    ...         attributes=["expansions", "search_time"], filter_algorithm=["lmcut"]
+    ...     )
+    ... )
 
     Example output:
 

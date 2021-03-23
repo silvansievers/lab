@@ -42,8 +42,7 @@ def find_two_approximation(edges):
 def find_greedy_cover(edges):
     def find_vertex_greedily(remaining_edges):
         num_incident_edges = collections.defaultdict(int)
-        for edge in remaining_edges:
-            u, v, = edge
+        for u, v in remaining_edges:
             num_incident_edges[u] += 1
             num_incident_edges[v] += 1
         return max(num_incident_edges, key=lambda v: num_incident_edges[v])
@@ -69,7 +68,7 @@ def main():
     args = parse_args()
     random.seed(args.seed)
     edges = get_edges(args.input_file)
-    print("Algorithm: {}".format(args.algorithm))
+    print(f"Algorithm: {args.algorithm}")
     start_time = clock()
     if args.algorithm == "2approx":
         cover = find_two_approximation(edges)
@@ -78,9 +77,9 @@ def main():
     else:
         raise ValueError("Unknown algorithm selected")
     solve_time = clock() - start_time
-    print("Cover: {}".format(cover))
-    print("Cover size: {}".format(len(cover)))
-    print("Solve time: {}s".format(solve_time))
+    print(f"Cover: {cover}")
+    print(f"Cover size: {len(cover)}")
+    print(f"Solve time: {solve_time}s")
 
 
 if __name__ == "__main__":

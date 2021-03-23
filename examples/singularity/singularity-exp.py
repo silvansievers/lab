@@ -50,8 +50,9 @@ if RUNNING_ON_CLUSTER:
         email="my.name@unibas.ch",
         memory_per_cpu="3872M",
         export=["PATH"],
-        setup=BaselSlurmEnvironment.DEFAULT_SETUP
-        + "\nmodule load Singularity/2.6.1 2> /dev/null",
+        setup=BaselSlurmEnvironment.DEFAULT_SETUP,
+        # Until recently, we had to load the Singularity module here
+        # by adding "module load Singularity/2.6.1 2> /dev/null".
     )
     TIME_LIMIT = 1800
 else:
@@ -65,8 +66,7 @@ ATTRIBUTES = [
     "error",
     "g_values_over_time",
     "run_dir",
-    "singularity_runtime",
-    "total_time",
+    "runtime",
 ]
 
 exp = Experiment(environment=ENVIRONMENT)
@@ -83,7 +83,7 @@ def get_image(name):
     return planner, image
 
 
-IMAGES = [get_image("lama-first")]
+IMAGES = [get_image("fd1906-lama-first")]
 
 for planner, image in IMAGES:
     exp.add_resource(planner, image, symlink=True)
@@ -100,7 +100,7 @@ for planner, _ in IMAGES:
             "run-planner",
             [
                 "{run_singularity}",
-                "{%s}" % planner,
+                f"{{{planner}}}",
                 "{domain}",
                 "{problem}",
                 "sas_plan",
@@ -113,7 +113,7 @@ for planner, _ in IMAGES:
         run.set_property("algorithm", planner)
         run.set_property("id", [planner, task.domain, task.problem])
 
-report = os.path.join(exp.eval_dir, "{}.html".format(exp.name))
+report = os.path.join(exp.eval_dir, f"{exp.name}.html")
 exp.add_report(BaseReport(attributes=ATTRIBUTES), outfile=report)
 
 exp.run_steps()
